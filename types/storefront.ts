@@ -36,6 +36,12 @@ export interface ThemeSections {
 
 export interface ThemeCustomization {
     themeId?: string;
+    // Which registry theme slug ("theme_one" | "spark") this store's live
+    // Theme doc was copied from (set by crmApp's applyTemplate). NOT the same
+    // as themeId above (this Theme document's own instance id) — use this
+    // field, not shop.themeId, to resolve which theme registry entry to
+    // render for a real (non-preview) store.
+    templateId?: string;
     storeId: string;
     scrollingText: string;
     enableScrollingText: boolean;
@@ -44,6 +50,10 @@ export interface ThemeCustomization {
     footerLinks?: Array<{ label: string; url: string }>;
     navbar?: NavbarCustomization;
     footer?: FooterCustomization;
+    // Generic per-theme config blob for themes whose shape doesn't fit the
+    // fixed ThemeSections columns above (e.g. Spark). Undefined means "use
+    // the theme's bundled defaults" — only merchant overrides live here.
+    themeConfig?: Record<string, unknown>;
 }
 
 // Marketplace catalog entry (Phase 5 backend) — only the fields the storefront's

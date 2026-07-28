@@ -36,6 +36,16 @@ async function getHomeData() {
     // below if the template doesn't exist/isn't active — the backend already
     // 404s for inactive templates, so a null return here just means "not a
     // valid preview target," not an error state.
+    //
+    // Real bug found and fixed here (2026-07-28, while adding a second theme):
+    // this branch used to unconditionally build theme_one-shaped preview data
+    // regardless of which template was actually being previewed, and the page
+    // component below resolved the THEME MODULE from the store's real
+    // shop.themeId rather than the previewed template — meaning previewing
+    // any template always rendered using the store's own currently-applied
+    // theme. Invisible with only one theme ever existing (they always
+    // coincided), but wrong. `themeIdForResolution` now carries the actual
+    // template being previewed through to the render step.
     if (previewTemplateId) {
         const template = await getThemeTemplate(apiBaseUrl, previewTemplateId);
         if (template) {
@@ -57,6 +67,7 @@ async function getHomeData() {
                 newInProducts: previewProducts,
                 bestSellerProducts: previewProducts,
                 categories: previewCategories,
+                themeIdForResolution: template.templateId,
             };
         }
     }
@@ -68,7 +79,12 @@ async function getHomeData() {
         getCategories(apiBaseUrl, shop.shopId, false),
     ]);
 
-    return { shop, theme, navPages, footerPages, newInProducts, bestSellerProducts, categories };
+    // Resolve the registry slug from the live Theme doc's templateId, not
+    // shop.themeId (that's the Theme document's own instance id, e.g.
+    // "THEME-xxx" — never a registry slug). See ThemeCustomization.templateId
+    // for the full explanation; real bug found 2026-07-28 while wiring up
+    // Spark's per-store themeConfig persistence.
+    return { shop, theme, navPages, footerPages, newInProducts, bestSellerProducts, categories, themeIdForResolution: theme?.templateId };
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -104,10 +120,32 @@ export default async function HomePage() {
         return <ShopNotFound />;
     }
 
-    const { shop, theme, navPages, footerPages, newInProducts, bestSellerProducts, categories } = data;
+    const { shop, theme, navPages, footerPages, newInProducts, bestSellerProducts, categories, themeIdForResolution } = data;
 
-    const themeSlug = resolveThemeSlug(shop.themeId);
+    const themeSlug = resolveThemeSlug(themeIdForResolution);
     const themeModule = await loadTheme(themeSlug);
+
+    // A theme that implements its own self-contained HomePage (e.g. Spark)
+    // owns its entire Home rendering, including its own Header/Footer — the
+    // generic theme_one-specific section-switching below doesn't apply to it
+    // at all. theme_one itself doesn't export HomePage (deliberately not
+    // retrofitted — see MIGRATION_RUNBOOK.md Phase 4), so it always falls
+    // through to the existing logic.
+    if (themeModule.HomePage) {
+        const HomePageComponent = themeModule.HomePage;
+        return (
+            <HomePageComponent
+                shop={shop}
+                navPages={navPages}
+                footerPages={footerPages}
+                newInProducts={newInProducts}
+                bestSellerProducts={bestSellerProducts}
+                categories={categories}
+                themeConfig={theme.themeConfig}
+            />
+        );
+    }
+
     const { Header, Footer, Hero, ProductGrid, Collections } = themeModule;
 
     const baseNavItems = [

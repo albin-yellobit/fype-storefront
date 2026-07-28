@@ -1,12 +1,51 @@
+import type { ComponentType } from "react";
+import type { Category, Page, ShopIdentity, StorefrontProduct } from "@/types/storefront";
+
 // Dumb lookup table: themeSlug -> dynamic import of the theme's whole module.
 // Keep it dumb — see storefront-multi-theme-architecture.md §4 on why this
 // stays a plain object instead of growing into a plugin system.
-export type ThemeSlug = "theme_one";
+export type ThemeSlug = "theme_one" | "spark";
 
 export type ThemeModule = typeof import("./theme_one");
 
-export const themeRegistry: Record<ThemeSlug, () => Promise<ThemeModule>> = {
+// Props for a theme's self-contained Home page component. Real store/catalog
+// data is the same shape for every theme (it's not config-shaped); each
+// theme's own visual/section config is NOT passed through here — a theme
+// reads its own bundled defaults (see spark/sparkDefaultConfig.ts) or, once
+// per-store persistence exists, its own saved config internally.
+export interface HomePageProps {
+    shop: ShopIdentity;
+    navPages: Page[];
+    footerPages: Page[];
+    newInProducts: StorefrontProduct[];
+    bestSellerProducts: StorefrontProduct[];
+    categories: Category[];
+    // Generic per-theme config override (e.g. Spark's Theme.themeConfig) —
+    // undefined means "use the theme's bundled defaults."
+    themeConfig?: Record<string, unknown>;
+}
+
+// A theme beyond theme_one may only implement a subset of ThemeModule's shape
+// — e.g. a brand-new HomePage using a genuinely different config schema (see
+// MIGRATION_RUNBOOK.md Phase 4 decision #2: "each theme owns an arbitrary,
+// theme-specific config schema"). loadTheme() in lib/theme.ts merges whatever
+// a theme actually exports onto theme_one as a baseline, so anything that
+// theme hasn't implemented yet (Header/Footer/ProductGrid/...) still renders
+// via theme_one instead of crashing — a real store on a partially-built theme
+// gets a visually-inconsistent page for the unbuilt parts, not a broken one.
+export type PartialThemeModule = Partial<ThemeModule> & {
+    HomePage?: ComponentType<HomePageProps>;
+};
+
+// What loadTheme() in lib/theme.ts actually returns after merging a theme
+// onto the theme_one baseline: every theme_one field is guaranteed present
+// (from the baseline), plus whichever optional extras (like HomePage) the
+// requested theme itself overrides.
+export type ResolvedThemeModule = ThemeModule & { HomePage?: ComponentType<HomePageProps> };
+
+export const themeRegistry: Record<ThemeSlug, () => Promise<PartialThemeModule>> = {
     theme_one: () => import("./theme_one"),
+    spark: () => import("./spark"),
 };
 
 export function isKnownThemeSlug(slug: string): slug is ThemeSlug {
