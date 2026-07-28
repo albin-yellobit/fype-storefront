@@ -1,0 +1,15 @@
+/*
+ * Checkout is deliberately unthemed (see MIGRATION_RUNBOOK.md Phase 2/3
+ * architecture decision) so it doesn't import theme_one/tokens.css. It still
+ * needs the Material Symbols icon font though — that's a shared UI dependency,
+ * not a theme token — so it gets its own minimal import here instead.
+ */
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined");
+
+.material-symbols-outlined {
+    font-variation-settings:
+        "FILL" 0,
+        "wght" 400,
+        "GRAD" 0,
+        "opsz" 24;
+}

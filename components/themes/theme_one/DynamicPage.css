@@ -1,0 +1,196 @@
+.dynamic-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.page-main {
+    flex: 1;
+    padding: 2rem 0;
+}
+
+.page-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+.page-content {
+    background: white;
+    border-radius: 8px;
+    padding: 3rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.page-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.page-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 0 0 0.5rem 0;
+    color: #111827;
+}
+
+.page-body {
+    line-height: 1.75;
+    color: #374151;
+}
+
+.page-body h1,
+.page-body h2,
+.page-body h3,
+.page-body h4,
+.page-body h5,
+.page-body h6 {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: #111827;
+}
+
+.page-body h1 {
+    font-size: 2rem;
+}
+
+.page-body h2 {
+    font-size: 1.75rem;
+}
+
+.page-body h3 {
+    font-size: 1.5rem;
+}
+
+.page-body h4 {
+    font-size: 1.25rem;
+}
+
+.page-body p {
+    margin-bottom: 1.25rem;
+}
+
+.page-body a {
+    color: #3b82f6;
+    text-decoration: underline;
+}
+
+.page-body a:hover {
+    color: #2563eb;
+}
+
+.page-body ul,
+.page-body ol {
+    margin-bottom: 1.25rem;
+    padding-left: 2rem;
+}
+
+.page-body li {
+    margin-bottom: 0.5rem;
+}
+
+.page-body img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 1.5rem 0;
+}
+
+.page-body blockquote {
+    border-left: 4px solid #e5e7eb;
+    padding-left: 1rem;
+    margin: 1.5rem 0;
+    font-style: italic;
+    color: #6b7280;
+}
+
+.page-body code {
+    background-color: #f3f4f6;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.875em;
+    font-family: "Courier New", monospace;
+}
+
+.page-body pre {
+    background-color: #1f2937;
+    color: #f9fafb;
+    padding: 1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 1.5rem 0;
+}
+
+.page-body pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+}
+
+.page-body table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+}
+
+.page-body th,
+.page-body td {
+    border: 1px solid #e5e7eb;
+    padding: 0.75rem;
+    text-align: left;
+}
+
+.page-body th {
+    background-color: #f9fafb;
+    font-weight: 600;
+}
+
+.page-body hr {
+    border: none;
+    border-top: 2px solid #e5e7eb;
+    margin: 2rem 0;
+}
+
+@media (max-width: 768px) {
+    .page-content {
+        padding: 1.5rem;
+    }
+
+    .page-title {
+        font-size: 2rem;
+    }
+
+    .page-body h1 {
+        font-size: 1.75rem;
+    }
+
+    .page-body h2 {
+        font-size: 1.5rem;
+    }
+
+    .page-body h3 {
+        font-size: 1.25rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-container {
+        padding: 0 1rem;
+    }
+
+    .page-content {
+        padding: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+    }
+
+    .page-body {
+        font-size: 0.9375rem;
+    }
+}

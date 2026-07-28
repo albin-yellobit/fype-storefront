@@ -1,0 +1,59 @@
+import { headers } from "next/headers";
+import Script from "next/script";
+import { loadTheme, resolveThemeSlug } from "@/lib/theme";
+import { getApiBaseUrl, getShopByDomain } from "@/lib/storefront-api";
+import Providers from "@/components/shared/Providers";
+
+// Same validation the SPA used (App.tsx) before building either script — only
+// a plausible pixel/container id ever gets interpolated into injected JS.
+const META_PIXEL_ID_PATTERN = /^\d{10,20}$/;
+const GTM_CONTAINER_ID_PATTERN = /^GTM-[A-Z0-9]{4,10}$/;
+
+export default async function StorefrontLayout({ children }: { children: React.ReactNode }) {
+    const headersList = await headers();
+    const host = headersList.get("host") ?? "";
+    const domain = host.split(":")[0];
+    const headerThemeId = headersList.get("x-theme-id");
+
+    const apiBaseUrl = await getApiBaseUrl();
+    const shop = await getShopByDomain(apiBaseUrl, domain);
+
+    const themeSlug = resolveThemeSlug(shop?.themeId ?? headerThemeId);
+    const theme = await loadTheme(themeSlug);
+    const ThemeLayout = theme.Layout;
+
+    const marketing = shop?.settings?.marketing;
+    const metaPixelId = marketing?.metaPixel?.enabled ? marketing.metaPixel.pixelId : undefined;
+    const gtmContainerId = marketing?.googleTagManager?.enabled ? marketing.googleTagManager.containerId : undefined;
+    const showMetaPixel = !!metaPixelId && META_PIXEL_ID_PATTERN.test(metaPixelId);
+    const showGtm = !!gtmContainerId && GTM_CONTAINER_ID_PATTERN.test(gtmContainerId);
+
+    return (
+        <>
+            {showGtm && (
+                <Script id="storefront-gtm" strategy="afterInteractive">
+                    {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+                    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+                    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;
+                    j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
+                    f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtmContainerId}');`}
+                </Script>
+            )}
+            {showMetaPixel && (
+                <Script id="storefront-meta-pixel" strategy="afterInteractive">
+                    {`!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+                    n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+                    n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+                    t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}
+                    (window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+                    fbq('init','${metaPixelId}');`}
+                </Script>
+            )}
+            <Providers storeId={shop?.shopId}>
+                <ThemeLayout shopName={shop?.shopName} storeId={shop?.shopId}>
+                    {children}
+                </ThemeLayout>
+            </Providers>
+        </>
+    );
+}

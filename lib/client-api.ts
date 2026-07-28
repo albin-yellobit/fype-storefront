@@ -1,0 +1,99 @@
+"use client";
+
+import axios, { type AxiosRequestConfig, type AxiosResponse } from "axios";
+import { getCurrentStoreId } from "./client-store-context";
+
+const AUTH_TOKEN_KEY = "auth_token";
+const GUEST_ID_KEY = "guest_id";
+
+export const getAuthToken = () => (typeof window === "undefined" ? null : localStorage.getItem(AUTH_TOKEN_KEY));
+export const setAuthToken = (token: string) => localStorage.setItem(AUTH_TOKEN_KEY, token);
+export const clearAuthToken = () => localStorage.removeItem(AUTH_TOKEN_KEY);
+
+export const getGuestId = () => (typeof window === "undefined" ? null : localStorage.getItem(GUEST_ID_KEY));
+export const setGuestId = (id: string) => localStorage.setItem(GUEST_ID_KEY, id);
+export const clearGuestId = () => localStorage.removeItem(GUEST_ID_KEY);
+
+const api = axios.create({
+    baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
+    headers: { "Content-Type": "application/json" },
+});
+
+api.interceptors.request.use((config) => {
+    const token = getAuthToken();
+    const guestId = getGuestId();
+
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    // Sent on every request:
+    // - Unauthenticated: server uses it to read/write the guest cart
+    // - Authenticated: server uses it to merge the guest cart on login
+    if (guestId) {
+        config.headers["x-guest-id"] = guestId;
+    }
+
+    return config;
+});
+
+api.interceptors.response.use(
+    (response) => {
+        // Persist guestId whenever the server echoes it back
+        const guestId = response.data?.data?.cart?.guestId ?? response.data?.cart?.guestId;
+        if (guestId) setGuestId(guestId);
+
+        return response;
+    },
+    async (error) => {
+        const originalRequest = error.config;
+
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            originalRequest._retry = true;
+
+            try {
+                const storeId = getCurrentStoreId();
+                const res = await api.post(`/customer/${storeId}/auth/refresh`);
+                const newToken: string = res.data?.token;
+
+                if (newToken) {
+                    setAuthToken(newToken);
+                    originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
+                    return api(originalRequest);
+                }
+            } catch {
+                clearAuthToken();
+            }
+        }
+
+        return Promise.reject(error);
+    }
+);
+
+export const getApi = <T = unknown>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> =>
+    api.get<T>(url, config);
+
+export const postApi = <T = unknown, D = unknown>(
+    url: string,
+    data: D,
+    config?: AxiosRequestConfig
+): Promise<AxiosResponse<T>> => api.post<T>(url, data, config);
+
+export const putApi = <T = unknown, D = unknown>(
+    url: string,
+    data: D,
+    config?: AxiosRequestConfig
+): Promise<AxiosResponse<T>> => api.put<T>(url, data, config);
+
+export const deleteApi = <T = unknown>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> =>
+    api.delete<T>(url, config);
+
+export function getApiErrorMessage(error: unknown, fallback: string): string {
+    if (axios.isAxiosError(error)) {
+        const message = (error.response?.data as { message?: string } | undefined)?.message;
+        if (message) return message;
+    }
+    return fallback;
+}
+
+export default api;

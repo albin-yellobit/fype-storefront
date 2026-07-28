@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+/*
+ * Deliberately empty beyond the Tailwind import: body background/text/font
+ * are theme-owned (see components/themes/theme_one/tokens.css) since tokens
+ * are per-theme, not global. Don't add global dark-mode/background rules
+ * here — they'll win the cascade over every theme's tokens.css.
+ */

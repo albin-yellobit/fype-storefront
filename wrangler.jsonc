@@ -1,0 +1,47 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"main": ".open-next/worker.js",
+	"name": "storefront-next",
+	"compatibility_date": "2026-07-22",
+	"dev": {
+		"port": 3040
+	},
+	"compatibility_flags": [
+		"nodejs_compat",
+		"global_fetch_strictly_public"
+	],
+	"assets": {
+		"directory": ".open-next/assets",
+		"binding": "ASSETS"
+	},
+	"vars": {
+		// local/dev default; override per-environment (see [env.production.vars] below) once a real API host exists.
+		// CONFIRMED (2026-07-23, real browser test): NEXT_PUBLIC_API_BASE_URL here — and in .dev.vars — does NOT
+		// reach the client bundle. Next.js inlines NEXT_PUBLIC_* vars at build time by reading its OWN env loader
+		// (.env.local / .env.production.local, standard Next.js convention), which runs before the Cloudflare
+		// adapter's .dev.vars injection even happens. Client-side code was silently calling relative URLs against
+		// the Worker's own origin instead of the backend until .env.local was added — see that file, not this one,
+		// for the value that actually matters to client code.
+		"API_BASE_URL": "http://localhost:8000/api/v1",
+		"NEXT_PUBLIC_API_BASE_URL": "http://localhost:8000/api/v1"
+	},
+	"kv_namespaces": [
+		{
+			"binding": "FYPE_TENANT_CACHE",
+			"id": "55ab9eaeeee0478494db64b87b26389e"
+		}
+	],
+	"services": [
+		{
+			// Self-reference service binding, the service name must match the worker name
+			// see https://opennext.js.org/cloudflare/caching
+			"binding": "WORKER_SELF_REFERENCE",
+			"service": "storefront-next"
+		}
+	],
+	"images": {
+		// Enable image optimization
+		// see https://opennext.js.org/cloudflare/howtos/image
+		"binding": "IMAGES"
+	}
+}
