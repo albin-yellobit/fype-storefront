@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import Script from "next/script";
 import { loadTheme, resolveThemeSlug } from "@/lib/theme";
-import { getApiBaseUrl, getShopByDomain } from "@/lib/storefront-api";
+import { getApiBaseUrl, getShopByDomain, getTheme } from "@/lib/storefront-api";
 import Providers from "@/components/shared/Providers";
 
 // Same validation the SPA used (App.tsx) before building either script — only
@@ -17,10 +17,16 @@ export default async function StorefrontLayout({ children }: { children: React.R
 
     const apiBaseUrl = await getApiBaseUrl();
     const shop = await getShopByDomain(apiBaseUrl, domain);
+    // The live Theme document's templateId (not shop.themeId, which is that
+    // document's own instance id, e.g. "THEME-xxx") is the real registry
+    // slug — see ThemeCustomization.templateId. Without this, the outer
+    // chrome (BottomNav for theme_one, Spark's plain wrapper) could resolve
+    // a different theme than the page content inside it does.
+    const storeTheme = shop ? await getTheme(apiBaseUrl, shop.shopId) : null;
 
-    const themeSlug = resolveThemeSlug(shop?.themeId ?? headerThemeId);
-    const theme = await loadTheme(themeSlug);
-    const ThemeLayout = theme.Layout;
+    const themeSlug = resolveThemeSlug(storeTheme?.templateId ?? headerThemeId);
+    const themeModule = await loadTheme(themeSlug);
+    const ThemeLayout = themeModule.Layout;
 
     const marketing = shop?.settings?.marketing;
     const metaPixelId = marketing?.metaPixel?.enabled ? marketing.metaPixel.pixelId : undefined;

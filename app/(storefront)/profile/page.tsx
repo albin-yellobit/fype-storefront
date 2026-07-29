@@ -35,7 +35,7 @@ export default async function ProfilePage() {
 
     const { shop, theme, navPages, footerPages } = data;
 
-    const themeSlug = resolveThemeSlug(shop.themeId);
+    const themeSlug = resolveThemeSlug(theme.templateId);
     const themeModule = await loadTheme(themeSlug);
     const { Header, Footer, AccountLayout, ProfileView } = themeModule;
 

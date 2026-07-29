@@ -51,7 +51,7 @@ export default async function ProductDetailsPage({ params }: ProductDetailsPageP
     const { apiBaseUrl, shop, theme, navPages, footerPages } = data;
     const { product, variants, variantOptions, relatedProducts } = await getProductDetails(apiBaseUrl, shop.shopId, productId);
 
-    const themeSlug = resolveThemeSlug(shop.themeId);
+    const themeSlug = resolveThemeSlug(theme.templateId);
     const themeModule = await loadTheme(themeSlug);
     const { Header, Footer, ProductDetailsView } = themeModule;
 

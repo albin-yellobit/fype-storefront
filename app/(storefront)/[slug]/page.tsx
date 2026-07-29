@@ -51,7 +51,7 @@ export default async function CmsPage({ params }: CmsPageProps) {
     const { apiBaseUrl, shop, theme, navPages, footerPages } = data;
     const page = await getPageBySlug(apiBaseUrl, shop.shopId, slug);
 
-    const themeSlug = resolveThemeSlug(shop.themeId);
+    const themeSlug = resolveThemeSlug(theme.templateId);
     const themeModule = await loadTheme(themeSlug);
     const { Header, Footer, DynamicPage } = themeModule;
 

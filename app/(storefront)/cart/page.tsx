@@ -43,7 +43,7 @@ export default async function CartPage() {
 
     const { shop, theme, navPages, footerPages, bestSellerProducts } = data;
 
-    const themeSlug = resolveThemeSlug(shop.themeId);
+    const themeSlug = resolveThemeSlug(theme.templateId);
     const themeModule = await loadTheme(themeSlug);
     const { Header, Footer, CartView } = themeModule;
 
