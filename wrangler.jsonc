@@ -43,5 +43,31 @@
 		// Enable image optimization
 		// see https://opennext.js.org/cloudflare/howtos/image
 		"binding": "IMAGES"
+	},
+	"env": {
+		"staging": {
+			// Deploys as "storefront-next-staging" (top-level name + "-staging", Wrangler default).
+			// Bindings/vars are NOT inherited from top-level config in wrangler.jsonc and must be
+			// fully redeclared here — see https://developers.cloudflare.com/workers/wrangler/environments/
+			"vars": {
+				"API_BASE_URL": "https://test.api.fypestore.com/api/v1",
+				"NEXT_PUBLIC_API_BASE_URL": "https://test.api.fypestore.com/api/v1"
+			},
+			"kv_namespaces": [
+				{
+					"binding": "FYPE_TENANT_CACHE",
+					"id": "55ab9eaeeee0478494db64b87b26389e"
+				}
+			],
+			"services": [
+				{
+					"binding": "WORKER_SELF_REFERENCE",
+					"service": "storefront-next-staging"
+				}
+			],
+			"images": {
+				"binding": "IMAGES"
+			}
+		}
 	}
 }
