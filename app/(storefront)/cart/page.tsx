@@ -45,6 +45,15 @@ export default async function CartPage() {
 
     const themeSlug = resolveThemeSlug(theme.templateId);
     const themeModule = await loadTheme(themeSlug);
+
+    // A theme with its own self-contained CartPage (e.g. Spark) owns the
+    // whole page, same delegation pattern as Home — see
+    // MIGRATION_RUNBOOK.md.
+    if (themeModule.CartPage) {
+        const ThemeCartPage = themeModule.CartPage;
+        return <ThemeCartPage shop={shop} navPages={navPages} footerPages={footerPages} bestSellerProducts={bestSellerProducts} />;
+    }
+
     const { Header, Footer, CartView } = themeModule;
 
     const baseNavItems = [

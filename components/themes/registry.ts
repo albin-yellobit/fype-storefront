@@ -1,5 +1,14 @@
 import type { ComponentType } from "react";
-import type { Category, Page, ShopIdentity, StorefrontProduct } from "@/types/storefront";
+import type {
+    Category,
+    Page,
+    PaginationMeta,
+    ProductDetail,
+    ProductVariant,
+    ShopIdentity,
+    StorefrontProduct,
+    VariantOptions,
+} from "@/types/storefront";
 
 // Dumb lookup table: themeSlug -> dynamic import of the theme's whole module.
 // Keep it dumb — see storefront-multi-theme-architecture.md §4 on why this
@@ -25,6 +34,43 @@ export interface HomePageProps {
     themeConfig?: Record<string, unknown>;
 }
 
+// Props for a theme's self-contained Products (PLP) page.
+export interface ProductsPageProps {
+    shop: ShopIdentity;
+    navPages: Page[];
+    footerPages: Page[];
+    categories: Category[];
+    products: StorefrontProduct[];
+    pagination?: PaginationMeta | null;
+    searchParams: {
+        category?: string;
+        minPrice?: string;
+        maxPrice?: string;
+        sortBy?: string;
+        search?: string;
+        page?: string;
+    };
+}
+
+// Props for a theme's self-contained Product Details (PDP) page.
+export interface ProductDetailsPageProps {
+    shop: ShopIdentity;
+    navPages: Page[];
+    footerPages: Page[];
+    product: ProductDetail | null;
+    variants: ProductVariant[];
+    variantOptions: VariantOptions | null;
+    relatedProducts: StorefrontProduct[];
+}
+
+// Props for a theme's self-contained Cart page.
+export interface CartPageProps {
+    shop: ShopIdentity;
+    navPages: Page[];
+    footerPages: Page[];
+    bestSellerProducts: StorefrontProduct[];
+}
+
 // A theme beyond theme_one may only implement a subset of ThemeModule's shape
 // — e.g. a brand-new HomePage using a genuinely different config schema (see
 // MIGRATION_RUNBOOK.md Phase 4 decision #2: "each theme owns an arbitrary,
@@ -35,13 +81,21 @@ export interface HomePageProps {
 // gets a visually-inconsistent page for the unbuilt parts, not a broken one.
 export type PartialThemeModule = Partial<ThemeModule> & {
     HomePage?: ComponentType<HomePageProps>;
+    ProductsPage?: ComponentType<ProductsPageProps>;
+    ProductDetailsPage?: ComponentType<ProductDetailsPageProps>;
+    CartPage?: ComponentType<CartPageProps>;
 };
 
 // What loadTheme() in lib/theme.ts actually returns after merging a theme
 // onto the theme_one baseline: every theme_one field is guaranteed present
 // (from the baseline), plus whichever optional extras (like HomePage) the
 // requested theme itself overrides.
-export type ResolvedThemeModule = ThemeModule & { HomePage?: ComponentType<HomePageProps> };
+export type ResolvedThemeModule = ThemeModule & {
+    HomePage?: ComponentType<HomePageProps>;
+    ProductsPage?: ComponentType<ProductsPageProps>;
+    ProductDetailsPage?: ComponentType<ProductDetailsPageProps>;
+    CartPage?: ComponentType<CartPageProps>;
+};
 
 export const themeRegistry: Record<ThemeSlug, () => Promise<PartialThemeModule>> = {
     theme_one: () => import("./theme_one"),

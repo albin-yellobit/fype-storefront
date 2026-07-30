@@ -72,6 +72,25 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
 
     const themeSlug = resolveThemeSlug(theme.templateId);
     const themeModule = await loadTheme(themeSlug);
+
+    // A theme with its own self-contained ProductsPage (e.g. Spark) owns
+    // the whole page, same delegation pattern as Home — see
+    // MIGRATION_RUNBOOK.md.
+    if (themeModule.ProductsPage) {
+        const ThemeProductsPage = themeModule.ProductsPage;
+        return (
+            <ThemeProductsPage
+                shop={shop}
+                navPages={navPages}
+                footerPages={footerPages}
+                categories={categories}
+                products={products}
+                pagination={pagination}
+                searchParams={params}
+            />
+        );
+    }
+
     const { Header, Footer, ProductCard, ProductFilters } = themeModule;
 
     const baseNavItems = [
