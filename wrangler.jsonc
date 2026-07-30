@@ -50,7 +50,7 @@
 			// Bindings/vars are NOT inherited from top-level config in wrangler.jsonc and must be
 			// fully redeclared here — see https://developers.cloudflare.com/workers/wrangler/environments/
 			"vars": {
-				"API_BASE_URL": "https://test.api.fypestore.com/api/v1",
+				"API_BASE_URL": "https://api.test.fypestore.com/api/v1",
 				"NEXT_PUBLIC_API_BASE_URL": "https://test.api.fypestore.com/api/v1"
 			},
 			"kv_namespaces": [
