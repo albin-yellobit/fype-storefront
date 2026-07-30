@@ -44,6 +44,14 @@
 		// see https://opennext.js.org/cloudflare/howtos/image
 		"binding": "IMAGES"
 	},
+	// Wires *.fypestore.com traffic to this (production) Worker deployment.
+	// Requires a proxied wildcard DNS record for *.fypestore.com in the zone.
+	"routes": [
+		{
+			"pattern": "*.fypestore.com/*",
+			"zone_name": "fypestore.com"
+		}
+	],
 	"env": {
 		"staging": {
 			// Deploys as "storefront-next-staging" (top-level name + "-staging", Wrangler default).
@@ -51,8 +59,18 @@
 			// fully redeclared here — see https://developers.cloudflare.com/workers/wrangler/environments/
 			"vars": {
 				"API_BASE_URL": "https://api.test.fypestore.com/api/v1",
-				"NEXT_PUBLIC_API_BASE_URL": "https://test.api.fypestore.com/api/v1"
+				"NEXT_PUBLIC_API_BASE_URL": "https://api.test.fypestore.com/api/v1"
 			},
+			// Wires *.test.fypestore.com traffic to this Worker. Wildcard subdomains
+			// within a zone you own use Workers Routes (not Custom Domains, which
+			// don't support wildcards) — requires a proxied wildcard DNS record for
+			// *.test.fypestore.com to exist in the fypestore.com zone.
+			"routes": [
+				{
+					"pattern": "*.test.fypestore.com/*",
+					"zone_name": "fypestore.com"
+				}
+			],
 			"kv_namespaces": [
 				{
 					"binding": "FYPE_TENANT_CACHE",
