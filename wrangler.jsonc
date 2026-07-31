@@ -44,11 +44,11 @@
 		// see https://opennext.js.org/cloudflare/howtos/image
 		"binding": "IMAGES"
 	},
-	// Wires *.fypestore.com traffic to this (production) Worker deployment.
-	// Requires a proxied wildcard DNS record for *.fypestore.com in the zone.
+	// Wires shops.fypestore.com (Cloudflare for SaaS fallback origin, production)
+	// to this Worker. Requires a proxied DNS record for shops.fypestore.com in the zone.
 	"routes": [
 		{
-			"pattern": "*.fypestore.com/*",
+			"pattern": "shops.fypestore.com/*",
 			"zone_name": "fypestore.com"
 		}
 	],
@@ -61,13 +61,14 @@
 				"API_BASE_URL": "https://api.test.fypestore.com/api/v1",
 				"NEXT_PUBLIC_API_BASE_URL": "https://api.test.fypestore.com/api/v1"
 			},
-			// Wires *.test.fypestore.com traffic to this Worker. Wildcard subdomains
-			// within a zone you own use Workers Routes (not Custom Domains, which
-			// don't support wildcards) — requires a proxied wildcard DNS record for
-			// *.test.fypestore.com to exist in the fypestore.com zone.
+			// Wires test-shops.fypestore.com (staging fallback-origin hostname; kept
+			// one label deep so it's covered by the free Universal SSL wildcard cert,
+			// unlike shops.test.fypestore.com which would need Advanced Certificate
+			// Manager) to this Worker. No Cloudflare for SaaS/Custom Hostnames setup
+			// for staging — this is plumbing parity only, per product decision.
 			"routes": [
 				{
-					"pattern": "*.test.fypestore.com/*",
+					"pattern": "test-shops.fypestore.com/*",
 					"zone_name": "fypestore.com"
 				}
 			],
