@@ -3,6 +3,7 @@ import type { ProductsPageProps } from "@/components/themes/registry";
 import Header from "./Header";
 import ProductCard from "./ProductCard";
 import ProductFilters from "./ProductFilters";
+import { sparkDefaultConfig } from "./sparkConfig";
 
 // Spark's self-contained Products (PLP) page. No Spark Footer yet (same
 // deferral as HomePage.tsx — see MIGRATION_RUNBOOK.md), so this ends after
@@ -30,7 +31,11 @@ export default function ProductsPage({ shop, navPages, categories, products, pag
 
     return (
         <div className="bg-white text-black min-h-screen">
-            <Header logoText={shop.shopName} navItems={navItems} />
+            <Header
+                header={{ ...sparkDefaultConfig.sections.header.settings, logo_text: shop.shopName }}
+                navItems={navItems}
+                announcementBlocks={[]}
+            />
 
             <div className="py-12 md:py-16 px-6 max-w-7xl mx-auto">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-12 gap-6 border-b border-gray-100 pb-8">

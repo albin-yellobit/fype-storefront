@@ -3,3 +3,19 @@
 .spark-theme-root {
     font-family: "Outfit", sans-serif;
 }
+
+/* Announcement bar "Scroll" text animation (Header.tsx) — a duplicated,
+   half-shifted track pair so the marquee loops seamlessly. */
+@keyframes spark-marquee {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(-100%);
+    }
+}
+.animate-marquee {
+    animation-name: spark-marquee;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+}

@@ -8,22 +8,90 @@
 // this theme's placeholder/preview content until per-store persistence of a
 // merchant's own edited config exists (deferred — see runbook).
 
-export interface SparkAnnouncementBarSettings {
+export interface SparkAnnouncementBarBlockSettings {
     text: string;
+    link: string;
+    text_animation: "Scroll" | "Slide";
+    speed: number;
+    appear_after: number;
+    background_color: string;
+    text_color: string;
+}
+
+export interface SparkAnnouncementBarBlock {
+    id: string;
+    settings: SparkAnnouncementBarBlockSettings;
+}
+
+export interface SparkAnnouncementBarSettings {
     show: boolean;
+    blocks: SparkAnnouncementBarBlock[];
 }
 
 export interface SparkHeaderSettings {
+    logo_type: "Logo Image" | "Text Only" | "Text + Logo Image";
     logo_text: string;
+    logo_image_url: string;
+    logo_position: "Left" | "Center";
+    menu_style: "Drawer" | "Tabs";
     navigation: string[];
+    sticky_header: boolean;
+    glass_effect: boolean;
+    background_color: string;
+    foreground_color: string;
+}
+
+export interface SparkImageBannerImageSettings {
+    image_url: string;
+    image_fit: "Cover" | "Contain" | "Stretch" | "Original Size";
+    overlay_color: string;
+    overlay_opacity: number;
+    object_position_x: number;
+    object_position_y: number;
+}
+
+export interface SparkImageBannerHeadingSettings {
+    text: string;
+    size: "Small" | "Medium" | "Large";
+    color: string;
+}
+
+export interface SparkImageBannerTextBlockSettings {
+    text: string;
+    style: "Body" | "Subtitle";
+    color: string;
+}
+
+export interface SparkImageBannerTextBlock {
+    id: string;
+    settings: SparkImageBannerTextBlockSettings;
+}
+
+export interface SparkImageBannerButtonBlockSettings {
+    label: string;
+    link: string;
+    style: "Outline" | "Filled";
+    button_color: string;
+}
+
+export interface SparkImageBannerButtonBlock {
+    id: string;
+    settings: SparkImageBannerButtonBlockSettings;
 }
 
 export interface SparkImageBannerSettings {
-    image_url: string;
-    subheading: string;
-    heading: string;
-    button_label: string;
-    button_link: string;
+    content_horizontal_alignment: "Left" | "Center" | "Right";
+    content_vertical_alignment: "Top" | "Center" | "Bottom";
+    background_color: string;
+    padding_top: number;
+    padding_bottom: number;
+    banner_height: "Small" | "Medium" | "Large";
+    image: SparkImageBannerImageSettings;
+    heading: SparkImageBannerHeadingSettings;
+    // Both capped at 2, matching THEME_SCHEMA's block "limit" — enforced by
+    // the editor's add-block UI, not re-validated here.
+    text_blocks: SparkImageBannerTextBlock[];
+    button_blocks: SparkImageBannerButtonBlock[];
 }
 
 export interface SparkSectionsConfig {
@@ -62,6 +130,10 @@ export interface SparkConfig {
 // Shape of a merchant's saved/draft overrides (Theme.themeConfig on the
 // backend, or a customization editor's unsaved draft) — every field optional
 // since it's only ever merged onto sparkDefaultConfig, never used standalone.
+// `blocks` arrays are replaced wholesale rather than merged element-by-element
+// when present — the editor always sends the full resolved snapshot (see
+// SparkCustomizeTheme.tsx's handleSave), so there's never a sparse partial
+// blocks list to reconcile against the base.
 export interface SparkConfigOverride {
     settings?: {
         colors?: Partial<SparkConfig["settings"]["colors"]>;
@@ -126,20 +198,73 @@ export const sparkDefaultConfig: SparkConfig = {
     sections: {
         announcement_bar: {
             type: "announcement_bar",
-            settings: { text: "Free shipping on orders over $150", show: true },
+            settings: {
+                show: true,
+                blocks: [
+                    {
+                        id: "announcement_1",
+                        settings: {
+                            text: "Free shipping on orders over $150",
+                            link: "",
+                            text_animation: "Slide",
+                            speed: 20,
+                            appear_after: 5,
+                            background_color: "#111111",
+                            text_color: "#ffffff",
+                        },
+                    },
+                ],
+            },
         },
         header: {
             type: "header",
-            settings: { logo_text: "SPARK", navigation: ["Shop", "Collections", "About", "Blog"] },
+            settings: {
+                logo_type: "Text Only",
+                logo_text: "SPARK",
+                logo_image_url: "",
+                logo_position: "Left",
+                menu_style: "Tabs",
+                navigation: ["Shop", "Collections", "About", "Blog"],
+                sticky_header: true,
+                glass_effect: true,
+                background_color: "#ffffff",
+                foreground_color: "#000000",
+            },
         },
         image_banner: {
             type: "image_banner",
             settings: {
-                image_url: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80",
-                subheading: "The New Standard",
-                heading: "Ignite your style",
-                button_label: "Discover More",
-                button_link: "/products",
+                content_horizontal_alignment: "Center",
+                content_vertical_alignment: "Center",
+                background_color: "#f9fafb",
+                padding_top: 0,
+                padding_bottom: 0,
+                banner_height: "Large",
+                image: {
+                    image_url: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80",
+                    image_fit: "Cover",
+                    overlay_color: "#000000",
+                    overlay_opacity: 40,
+                    object_position_x: 50,
+                    object_position_y: 50,
+                },
+                heading: {
+                    text: "Ignite your style",
+                    size: "Large",
+                    color: "#ffffff",
+                },
+                text_blocks: [
+                    {
+                        id: "image_banner_text_1",
+                        settings: { text: "The New Standard", style: "Subtitle", color: "#ffffff" },
+                    },
+                ],
+                button_blocks: [
+                    {
+                        id: "image_banner_button_1",
+                        settings: { label: "Discover More", link: "/products", style: "Outline", button_color: "#ffffff" },
+                    },
+                ],
             },
         },
     },

@@ -23,8 +23,19 @@ export const SPARK_SET_ACTIVE_SECTION = "SPARK_SET_ACTIVE_SECTION";
 // keeps both selection UIs in sync, matching the reference's click-anywhere
 // selection model.
 export const SPARK_SECTION_CLICKED = "SPARK_SECTION_CLICKED";
+// Block-level counterparts of the two messages above — lets the merchant
+// click a specific block (an announcement, a text block, a button) directly
+// in the canvas, not just the section it lives in, matching the reference's
+// per-block click selection (ring highlight + right-panel scoped to that
+// block alone).
+export const SPARK_SET_ACTIVE_BLOCK = "SPARK_SET_ACTIVE_BLOCK";
+export const SPARK_BLOCK_CLICKED = "SPARK_BLOCK_CLICKED";
 
 export type SparkSectionKey = "header" | "image_banner";
+
+export type SparkActiveBlock =
+    | { section: "header"; kind: "announcement"; id: string }
+    | { section: "image_banner"; kind: "text" | "button"; id: string };
 
 interface SparkHomeProps {
     initialConfig: SparkConfig;
@@ -48,6 +59,7 @@ function SectionOutline({ label, active }: { label: string; active: boolean }) {
 export default function SparkHome({ initialConfig, navItems }: SparkHomeProps) {
     const [liveConfig, setLiveConfig] = useState(initialConfig);
     const [activeSection, setActiveSection] = useState<SparkSectionKey | null>(null);
+    const [activeBlock, setActiveBlock] = useState<SparkActiveBlock | null>(null);
     // Set once on mount (client-only, see effect below) — used to gate both
     // the postMessage listener AND click-to-select-in-canvas, and to stop
     // real nav-link navigation from firing when a merchant is just trying to
@@ -70,6 +82,8 @@ export default function SparkHome({ initialConfig, navItems }: SparkHomeProps) {
                 setLiveConfig((current) => mergeSparkConfig(current, event.data.config as SparkConfigOverride));
             } else if (event.data.type === SPARK_SET_ACTIVE_SECTION) {
                 setActiveSection((event.data.section as SparkSectionKey | null) ?? null);
+            } else if (event.data.type === SPARK_SET_ACTIVE_BLOCK) {
+                setActiveBlock((event.data.block as SparkActiveBlock | null) ?? null);
             }
         }
 
@@ -93,6 +107,11 @@ export default function SparkHome({ initialConfig, navItems }: SparkHomeProps) {
         window.parent.postMessage({ type: SPARK_SECTION_CLICKED, section }, "*");
     };
 
+    const selectBlock = (block: SparkActiveBlock) => {
+        setActiveBlock(block);
+        window.parent.postMessage({ type: SPARK_BLOCK_CLICKED, block }, "*");
+    };
+
     // Selecting a section in the editor must never actually follow the
     // real nav/search/account/cart links inside Header — preventDefault in
     // the capture phase runs before those <Link>s' own click handlers,
@@ -114,19 +133,21 @@ export default function SparkHome({ initialConfig, navItems }: SparkHomeProps) {
             <div {...sectionProps("header")}>
                 <SectionOutline label="Header" active={activeSection === "header"} />
                 <Header
-                    logoText={header.settings.logo_text}
+                    header={header.settings}
                     navItems={navigation}
-                    announcementText={announcementBar.settings.show ? announcementBar.settings.text : undefined}
+                    announcementBlocks={announcementBar.settings.show ? announcementBar.settings.blocks : []}
+                    isEditorPreview={isEditorPreview}
+                    activeAnnouncementId={activeBlock?.section === "header" ? activeBlock.id : null}
+                    onAnnouncementClick={(id) => selectBlock({ section: "header", kind: "announcement", id })}
                 />
             </div>
             <div {...sectionProps("image_banner")}>
                 <SectionOutline label="Image Banner" active={activeSection === "image_banner"} />
                 <ImageBanner
-                    imageUrl={imageBanner.settings.image_url}
-                    subheading={imageBanner.settings.subheading}
-                    heading={imageBanner.settings.heading}
-                    buttonLabel={imageBanner.settings.button_label}
-                    buttonLink={imageBanner.settings.button_link}
+                    settings={imageBanner.settings}
+                    isEditorPreview={isEditorPreview}
+                    activeBlock={activeBlock?.section === "image_banner" ? { kind: activeBlock.kind, id: activeBlock.id } : null}
+                    onBlockClick={(kind, id) => selectBlock({ section: "image_banner", kind, id })}
                 />
             </div>
         </div>

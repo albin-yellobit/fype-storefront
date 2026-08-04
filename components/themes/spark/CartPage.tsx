@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CartPageProps } from "@/components/themes/registry";
 import Header from "./Header";
+import { sparkDefaultConfig } from "./sparkConfig";
 import AuthModal from "@/components/shared/AuthModal";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { updateCartItem, removeFromCart, updateGuestCartItem, removeFromGuestCart, addToWishlist, type CartItem } from "@/redux/slices/userSlice";
@@ -49,7 +50,11 @@ export default function CartPage({ shop, navPages, bestSellerProducts }: CartPag
 
     return (
         <div className="bg-white text-black min-h-screen">
-            <Header logoText={shop.shopName} navItems={navItems} />
+            <Header
+                header={{ ...sparkDefaultConfig.sections.header.settings, logo_text: shop.shopName }}
+                navItems={navItems}
+                announcementBlocks={[]}
+            />
 
             <div className="max-w-6xl mx-auto px-6 py-12 md:py-16">
                 <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-10">Your Cart {cart ? `(${cart.itemCount})` : ""}</h1>

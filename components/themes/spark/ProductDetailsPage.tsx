@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { ProductDetailsPageProps } from "@/components/themes/registry";
 import Header from "./Header";
 import ProductGallery from "./ProductGallery";
+import { sparkDefaultConfig } from "./sparkConfig";
 import AuthModal from "@/components/shared/AuthModal";
 import { calculateProductTax } from "@/utils/taxCalculator";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
@@ -92,7 +93,11 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
     if (!product) {
         return (
             <div className="bg-white text-black min-h-screen">
-                <Header logoText={shop.shopName} navItems={navItems} />
+                <Header
+                    header={{ ...sparkDefaultConfig.sections.header.settings, logo_text: shop.shopName }}
+                    navItems={navItems}
+                    announcementBlocks={[]}
+                />
                 <div className="flex justify-center items-center min-h-[50vh] text-black/60">Product not found</div>
             </div>
         );
@@ -131,7 +136,11 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
 
     return (
         <div className="bg-white text-black min-h-screen pb-20">
-            <Header logoText={shop.shopName} navItems={navItems} />
+            <Header
+                header={{ ...sparkDefaultConfig.sections.header.settings, logo_text: shop.shopName }}
+                navItems={navItems}
+                announcementBlocks={[]}
+            />
 
             <div className="px-6 py-4 border-b border-gray-100 flex items-center text-sm text-gray-500">
                 <Link href="/products" className="hover:text-black transition-colors">

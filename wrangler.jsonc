@@ -66,9 +66,20 @@
 			// unlike shops.test.fypestore.com which would need Advanced Certificate
 			// Manager) to this Worker. No Cloudflare for SaaS/Custom Hostnames setup
 			// for staging — this is plumbing parity only, per product decision.
+			//
+			// *.test.fypestore.com/* is the per-store staging wildcard, mirroring
+			// production's *.fypestore.com/* — every staging test store's own
+			// subdomain (e.g. ironman.test.fypestore.com) resolves here automatically,
+			// no per-store route needed. Requires Advanced Certificate Manager (ACM)
+			// activated on the zone with a cert covering *.test.fypestore.com, since
+			// the free Universal SSL cert only covers one label deep.
 			"routes": [
 				{
 					"pattern": "test-shops.fypestore.com/*",
+					"zone_name": "fypestore.com"
+				},
+				{
+					"pattern": "*.test.fypestore.com/*",
 					"zone_name": "fypestore.com"
 				}
 			],
