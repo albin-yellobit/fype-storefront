@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import type {
     Category,
+    CollectionSummary,
     Page,
     PaginationMeta,
     ProductDetail,
@@ -71,6 +72,19 @@ export interface CartPageProps {
     bestSellerProducts: StorefrontProduct[];
 }
 
+// Props for a theme's self-contained Collection (single-collection listing)
+// page — new with Spark's Collection List section; theme_one has no
+// concept of this yet (same "not retrofitting theme_one" pattern already
+// used elsewhere), so a theme without CollectionPage 404s at the route
+// level instead of falling back to a generic implementation.
+export interface CollectionPageProps {
+    shop: ShopIdentity;
+    navPages: Page[];
+    footerPages: Page[];
+    collection: CollectionSummary;
+    products: StorefrontProduct[];
+}
+
 // A theme beyond theme_one may only implement a subset of ThemeModule's shape
 // — e.g. a brand-new HomePage using a genuinely different config schema (see
 // MIGRATION_RUNBOOK.md Phase 4 decision #2: "each theme owns an arbitrary,
@@ -84,6 +98,7 @@ export type PartialThemeModule = Partial<ThemeModule> & {
     ProductsPage?: ComponentType<ProductsPageProps>;
     ProductDetailsPage?: ComponentType<ProductDetailsPageProps>;
     CartPage?: ComponentType<CartPageProps>;
+    CollectionPage?: ComponentType<CollectionPageProps>;
 };
 
 // What loadTheme() in lib/theme.ts actually returns after merging a theme
@@ -95,6 +110,7 @@ export type ResolvedThemeModule = ThemeModule & {
     ProductsPage?: ComponentType<ProductsPageProps>;
     ProductDetailsPage?: ComponentType<ProductDetailsPageProps>;
     CartPage?: ComponentType<CartPageProps>;
+    CollectionPage?: ComponentType<CollectionPageProps>;
 };
 
 export const themeRegistry: Record<ThemeSlug, () => Promise<PartialThemeModule>> = {

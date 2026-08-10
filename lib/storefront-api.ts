@@ -1,6 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type {
     Category,
+    CollectionSummary,
     Page,
     PageDetail,
     PaginationMeta,
@@ -112,6 +113,60 @@ export async function getBestSellers(
         return json.data.data ?? [];
     } catch {
         return [];
+    }
+}
+
+// Real products for Spark's Featured Collection section — resolved
+// server-side (manual list or automated rule match) by
+// CollectionController.fetchCollectionStorefrontProducts, already shaped as
+// StorefrontProduct (same shape as getNewInCollection/getBestSellers).
+export async function getCollectionProducts(
+    apiBaseUrl: string,
+    storeId: string,
+    collectionId: string,
+    limit = 4
+): Promise<StorefrontProduct[]> {
+    if (!collectionId) return [];
+    try {
+        const json = await fetchJson<{ data: { products: StorefrontProduct[] } }>(
+            `${apiBaseUrl}/commerce/${storeId}/products/collections/${collectionId}/storefront-products?limit=${limit}`
+        );
+        return json.data.products ?? [];
+    } catch {
+        return [];
+    }
+}
+
+// One collection by its real _id — used to resolve Spark's Collection List
+// section (a merchant-picked set of collection_ids) into real tile data
+// (name + thumbnailUrl). Public endpoint, same as every other storefront
+// read here.
+export async function getCollectionById(apiBaseUrl: string, storeId: string, collectionId: string): Promise<CollectionSummary | null> {
+    try {
+        const json = await fetchJson<{ data: { collection: CollectionSummary } }>(`${apiBaseUrl}/commerce/${storeId}/products/collections/${collectionId}`);
+        return json.data.collection ?? null;
+    } catch {
+        return null;
+    }
+}
+
+export async function getCollectionsByIds(apiBaseUrl: string, storeId: string, collectionIds: string[]): Promise<CollectionSummary[]> {
+    if (collectionIds.length === 0) return [];
+    const results = await Promise.all(collectionIds.map((id) => getCollectionById(apiBaseUrl, storeId, id)));
+    // Preserves the merchant's chosen order and drops any collection that's
+    // since been deleted (getCollectionById returns null for a 404).
+    return results.filter((c): c is CollectionSummary => c !== null);
+}
+
+// By slug — the real, SEO-friendly identifier used in /collections/[slug]
+// (same convention as PDP's /products/[productId], just with Collection's
+// own human-readable field: fetchCollectionBySlug on the backend).
+export async function getCollectionBySlug(apiBaseUrl: string, storeId: string, slug: string): Promise<CollectionSummary | null> {
+    try {
+        const json = await fetchJson<{ data: { collection: CollectionSummary } }>(`${apiBaseUrl}/commerce/${storeId}/products/collections/slug/${slug}`);
+        return json.data.collection ?? null;
+    } catch {
+        return null;
     }
 }
 

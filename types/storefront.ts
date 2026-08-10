@@ -151,6 +151,16 @@ export interface Category {
     productCount: number;
 }
 
+// Minimal storefront-facing shape (not the full admin Collection document —
+// that has admin-only fields like productIds/rules/createdBy). Used by
+// Spark's Collection List section and the /collections/[slug] page.
+export interface CollectionSummary {
+    _id: string;
+    name: string;
+    slug: string;
+    thumbnailUrl?: string;
+}
+
 export interface PaginationMeta {
     currentPage: number;
     totalPages: number;
