@@ -12,6 +12,7 @@ import {
 import { loadTheme, resolveThemeSlug } from "@/lib/theme";
 import ShopNotFound from "@/components/shared/ShopNotFound";
 import type { ProductSortBy } from "@/types/storefront";
+import { mergeSparkConfig, sparkDefaultConfig } from "@/components/themes/spark/sparkConfig";
 
 interface ProductsPageProps {
     searchParams: Promise<{
@@ -56,6 +57,16 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
 
     const { apiBaseUrl, shop, theme, navPages, footerPages } = data;
 
+    const themeSlug = resolveThemeSlug(theme.templateId);
+    const themeModule = await loadTheme(themeSlug);
+
+    // Spark's own configured default only kicks in when no `?sortBy=` is
+    // present yet — ProductFilters.tsx's own sort dropdown already works
+    // independently of this once a merchant/visitor picks one. theme is
+    // already fetched above, so this is no extra network round trip.
+    const defaultSort: ProductSortBy =
+        themeSlug === "spark" ? mergeSparkConfig(sparkDefaultConfig, theme.themeConfig).page_settings.shop.default_sort : "newest";
+
     const page = params.page ? Number(params.page) : 1;
     const [categories, { products, pagination }] = await Promise.all([
         getCategories(apiBaseUrl, shop.shopId, false),
@@ -63,15 +74,12 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
             category: params.category,
             minPrice: params.minPrice ? Number(params.minPrice) : undefined,
             maxPrice: params.maxPrice ? Number(params.maxPrice) : undefined,
-            sortBy: (params.sortBy as ProductSortBy) || "newest",
+            sortBy: (params.sortBy as ProductSortBy) || defaultSort,
             search: params.search,
             page,
             limit: 12,
         }),
     ]);
-
-    const themeSlug = resolveThemeSlug(theme.templateId);
-    const themeModule = await loadTheme(themeSlug);
 
     // A theme with its own self-contained ProductsPage (e.g. Spark) owns
     // the whole page, same delegation pattern as Home — see
@@ -87,6 +95,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                 products={products}
                 pagination={pagination}
                 searchParams={params}
+                themeConfig={theme.themeConfig}
             />
         );
     }

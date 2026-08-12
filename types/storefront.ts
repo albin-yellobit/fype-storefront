@@ -137,6 +137,9 @@ export interface StorefrontProduct {
     hasVariants: boolean;
     taxApplied?: boolean;
     taxRate?: number;
+    // Drives ProductCard's "New" badge — optional since older/other feed
+    // endpoints may not always populate it.
+    createdAt?: string;
 }
 
 export interface Category {

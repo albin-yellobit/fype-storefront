@@ -75,7 +75,7 @@ export default function WishlistView({ storeId }: WishlistViewProps) {
     return (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-10">
             {products.map((product) => (
-                <ProductCard key={product.productId} product={product} shopName={undefined} storeId={storeId} />
+                <ProductCard key={product.productId} product={product} storeId={storeId} showWishlistButton />
             ))}
         </div>
     );

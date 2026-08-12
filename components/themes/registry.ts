@@ -51,6 +51,7 @@ export interface ProductsPageProps {
         search?: string;
         page?: string;
     };
+    themeConfig?: Record<string, unknown>;
 }
 
 // Props for a theme's self-contained Product Details (PDP) page.
@@ -85,6 +86,19 @@ export interface CollectionPageProps {
     products: StorefrontProduct[];
 }
 
+// Props for a theme's self-contained Collections (list-all-collections)
+// page — storefront equivalent of ProductsPage but for collections. Same
+// "not retrofitting theme_one" pattern as CollectionPage: a theme without
+// CollectionsPage 404s at the route level.
+export interface CollectionsPageProps {
+    shop: ShopIdentity;
+    navPages: Page[];
+    footerPages: Page[];
+    collections: CollectionSummary[];
+    pagination?: PaginationMeta | null;
+    themeConfig?: Record<string, unknown>;
+}
+
 // A theme beyond theme_one may only implement a subset of ThemeModule's shape
 // — e.g. a brand-new HomePage using a genuinely different config schema (see
 // MIGRATION_RUNBOOK.md Phase 4 decision #2: "each theme owns an arbitrary,
@@ -99,6 +113,7 @@ export type PartialThemeModule = Partial<ThemeModule> & {
     ProductDetailsPage?: ComponentType<ProductDetailsPageProps>;
     CartPage?: ComponentType<CartPageProps>;
     CollectionPage?: ComponentType<CollectionPageProps>;
+    CollectionsPage?: ComponentType<CollectionsPageProps>;
 };
 
 // What loadTheme() in lib/theme.ts actually returns after merging a theme
@@ -111,6 +126,7 @@ export type ResolvedThemeModule = ThemeModule & {
     ProductDetailsPage?: ComponentType<ProductDetailsPageProps>;
     CartPage?: ComponentType<CartPageProps>;
     CollectionPage?: ComponentType<CollectionPageProps>;
+    CollectionsPage?: ComponentType<CollectionsPageProps>;
 };
 
 export const themeRegistry: Record<ThemeSlug, () => Promise<PartialThemeModule>> = {

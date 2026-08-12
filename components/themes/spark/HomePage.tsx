@@ -33,36 +33,48 @@ export default async function HomePage({ shop, navPages, themeConfig }: HomePage
         .map((p) => ({ label: p.title, href: `/${p.slug}` }));
 
     // Fetched here (not in app/(storefront)/page.tsx alongside newIn/best-
-    // sellers) because the collection to fetch is only known after resolving
-    // Spark's own config — the generic page-level data loader has no notion
-    // of per-theme section config.
-    const featuredCollectionSettings = config.sections.featured_collection.settings;
-    let initialFeaturedCollectionProducts: Awaited<ReturnType<typeof getCollectionProducts>> = [];
-    const featuredProductSettings = config.sections.featured_product.settings;
-    let initialFeaturedProduct: Awaited<ReturnType<typeof getProductDetails>>["product"] = null;
-    const needsCollectionProducts = !config.sections.featured_collection.hidden && featuredCollectionSettings.collection_id;
-    const needsFeaturedProduct = !config.sections.featured_product.hidden && featuredProductSettings.product_id;
-    const collectionListSettings = config.sections.collection_list.settings;
-    let initialCollectionListCollections: Awaited<ReturnType<typeof getCollectionsByIds>> = [];
-    const needsCollectionList = !config.sections.collection_list.hidden && collectionListSettings.collection_ids.length > 0;
+    // sellers) because which collections/products to fetch is only known
+    // after resolving Spark's own config — the generic page-level data
+    // loader has no notion of per-theme section config. Body now allows
+    // multiple instances of the same section type (Add Section permits
+    // duplicates, matching the reference), so each real-data type is
+    // fetched per-instance and keyed by that instance's own id — never a
+    // single flat value per type.
+    const featuredCollectionInstances = config.sections.body.filter(
+        (s) => s.type === "featured_collection" && !s.hidden && s.settings.collection_id
+    );
+    const featuredProductInstances = config.sections.body.filter((s) => s.type === "featured_product" && !s.hidden && s.settings.product_id);
+    const collectionListInstances = config.sections.body.filter(
+        (s) => s.type === "collection_list" && !s.hidden && s.settings.collection_ids.length > 0
+    );
 
-    if (needsCollectionProducts || needsFeaturedProduct || needsCollectionList) {
+    const initialFeaturedCollectionProducts: Record<string, Awaited<ReturnType<typeof getCollectionProducts>>> = {};
+    const initialFeaturedProducts: Record<string, Awaited<ReturnType<typeof getProductDetails>>["product"]> = {};
+    const initialCollectionListCollections: Record<string, Awaited<ReturnType<typeof getCollectionsByIds>>> = {};
+
+    if (featuredCollectionInstances.length > 0 || featuredProductInstances.length > 0 || collectionListInstances.length > 0) {
         const apiBaseUrl = await getApiBaseUrl();
-        if (needsCollectionProducts) {
-            initialFeaturedCollectionProducts = await getCollectionProducts(
-                apiBaseUrl,
-                shop.shopId,
-                featuredCollectionSettings.collection_id,
-                featuredCollectionSettings.products_to_show
-            );
-        }
-        if (needsFeaturedProduct) {
-            const result = await getProductDetails(apiBaseUrl, shop.shopId, featuredProductSettings.product_id);
-            initialFeaturedProduct = result.product;
-        }
-        if (needsCollectionList) {
-            initialCollectionListCollections = await getCollectionsByIds(apiBaseUrl, shop.shopId, collectionListSettings.collection_ids);
-        }
+
+        await Promise.all([
+            ...featuredCollectionInstances.map(async (instance) => {
+                if (instance.type !== "featured_collection") return;
+                initialFeaturedCollectionProducts[instance.id] = await getCollectionProducts(
+                    apiBaseUrl,
+                    shop.shopId,
+                    instance.settings.collection_id,
+                    instance.settings.products_to_show
+                );
+            }),
+            ...featuredProductInstances.map(async (instance) => {
+                if (instance.type !== "featured_product") return;
+                const result = await getProductDetails(apiBaseUrl, shop.shopId, instance.settings.product_id);
+                initialFeaturedProducts[instance.id] = result.product;
+            }),
+            ...collectionListInstances.map(async (instance) => {
+                if (instance.type !== "collection_list") return;
+                initialCollectionListCollections[instance.id] = await getCollectionsByIds(apiBaseUrl, shop.shopId, instance.settings.collection_ids);
+            }),
+        ]);
     }
 
     return (
@@ -71,7 +83,7 @@ export default async function HomePage({ shop, navPages, themeConfig }: HomePage
             navItems={navItems}
             shop={shop}
             initialFeaturedCollectionProducts={initialFeaturedCollectionProducts}
-            initialFeaturedProduct={initialFeaturedProduct}
+            initialFeaturedProducts={initialFeaturedProducts}
             initialCollectionListCollections={initialCollectionListCollections}
         />
     );

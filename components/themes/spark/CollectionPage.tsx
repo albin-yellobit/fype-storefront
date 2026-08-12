@@ -31,7 +31,7 @@ export default function CollectionPage({ shop, navPages, collection, products }:
                 {products.length > 0 ? (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-12">
                         {products.map((product) => (
-                            <ProductCard key={product.productId} product={product} globalTax={globalTax} shopName={shop.shopName} storeId={shop.shopId} />
+                            <ProductCard key={product.productId} product={product} globalTax={globalTax} storeId={shop.shopId} />
                         ))}
                     </div>
                 ) : (

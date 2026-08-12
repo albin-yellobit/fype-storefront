@@ -15,14 +15,20 @@ const SORT_OPTIONS: Array<{ value: ProductSortBy; label: string }> = [
 // through the server (unlike the design reference's Shop.tsx, which filters
 // a small hardcoded in-memory array client-side) — same URL-search-param
 // pattern as theme_one's ProductFilters.tsx, restyled for Spark.
-export default function ProductFilters() {
+interface ProductFiltersProps {
+    // Only applies when the URL has no `sortBy` yet — once a visitor picks
+    // one, that choice (reflected in the URL) always wins.
+    defaultSort?: ProductSortBy;
+}
+
+export default function ProductFilters({ defaultSort }: ProductFiltersProps) {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
     const minPrice = searchParams.get("minPrice") ?? "";
     const maxPrice = searchParams.get("maxPrice") ?? "";
-    const sortBy = (searchParams.get("sortBy") as ProductSortBy) || "newest";
+    const sortBy = (searchParams.get("sortBy") as ProductSortBy) || (defaultSort ?? "newest");
     const search = searchParams.get("search") ?? "";
 
     const [searchInput, setSearchInput] = useState(search);
@@ -75,7 +81,7 @@ export default function ProductFilters() {
     const currentSortLabel = SORT_OPTIONS.find((o) => o.value === sortBy)?.label ?? "Newest";
 
     return (
-        <div className="w-full flex flex-col md:flex-row items-center gap-3 text-sm font-medium z-30" ref={filtersRef}>
+        <div className="w-full lg:w-auto flex flex-col md:flex-row items-center gap-3 text-sm font-medium z-30" ref={filtersRef}>
             <form onSubmit={handleSearchSubmit} className="relative w-full md:w-auto">
                 <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-lg">search</span>
                 <input

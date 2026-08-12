@@ -12,7 +12,8 @@ import CollectionList from "./sections/CollectionList";
 import Slideshow from "./sections/Slideshow";
 import CollapsibleContent from "./sections/CollapsibleContent";
 import ContactForm from "./sections/ContactForm";
-import { mergeSparkConfig, type SparkConfig, type SparkConfigOverride } from "./sparkConfig";
+import Footer from "./sections/Footer";
+import { mergeSparkConfig, type SparkBodySection, type SparkConfig, type SparkConfigOverride } from "./sparkConfig";
 import type { CollectionSummary, ProductDetail, ProductVariant, ShopIdentity, StorefrontProduct } from "@/types/storefront";
 
 // Message protocol between ecommerce_app's customization editor (parent
@@ -41,48 +42,78 @@ export const SPARK_SECTION_CLICKED = "SPARK_SECTION_CLICKED";
 export const SPARK_SET_ACTIVE_BLOCK = "SPARK_SET_ACTIVE_BLOCK";
 export const SPARK_BLOCK_CLICKED = "SPARK_BLOCK_CLICKED";
 
-export type SparkSectionKey =
-    | "header"
-    | "image_banner"
-    | "rich_text"
-    | "featured_collection"
-    | "featured_product"
-    | "multicolumn"
-    | "image_with_text"
-    | "collection_list"
-    | "slideshow"
-    | "collapsible_content"
-    | "contact_form";
+// A section identifier is just "header" (the one fixed singleton — it
+// bundles Announcement Bar and is never duplicated) or a Body instance's
+// own `id`. No longer a fixed type-name union: Body is a real ordered list
+// of section *instances* now (see sparkConfig.ts's SparkBodySection), so
+// e.g. two Rich Text sections can coexist, each independently selectable by
+// its own id.
+export type SparkActiveSectionId = string;
 
-export type SparkActiveBlock =
-    | { section: "header"; kind: "announcement"; id: string }
-    | { section: "image_banner"; kind: "banner_slide"; id: string }
-    | { section: "rich_text"; kind: "heading" | "text" | "button"; id: string }
-    | { section: "multicolumn"; kind: "column"; id: string }
-    | { section: "image_with_text"; kind: "image" | "heading" | "text" | "button"; id: string }
-    | { section: "slideshow"; kind: "slide"; id: string }
-    | { section: "collapsible_content"; kind: "item"; id: string };
+// `sectionId` is the owning instance's id ("header" for Announcement Bar
+// blocks); `kind` is block-type-specific (e.g. "heading"/"text"/"button"
+// for Rich Text, "column" for Multicolumn) and is only ever consumed by
+// that section's own component — not validated at the protocol level.
+export interface SparkActiveBlock {
+    sectionId: string;
+    kind: string;
+    id: string;
+}
+
+const BODY_SECTION_LABELS: Record<SparkBodySection["type"], string> = {
+    image_banner: "Image Banner",
+    rich_text: "Rich Text",
+    featured_collection: "Featured Collection",
+    featured_product: "Featured Product",
+    multicolumn: "Multicolumn",
+    image_with_text: "Image with Text",
+    collection_list: "Collection List",
+    slideshow: "Slideshow",
+    collapsible_content: "Collapsible Content",
+    contact_form: "Contact Form",
+};
 
 interface SparkHomeProps {
     initialConfig: SparkConfig;
     navItems: Array<{ label: string; href: string }>;
-    // Only needed by Featured Collection (real product data, unlike every
-    // other section here which is pure config) — storeId for its client
-    // refetch/add-to-cart calls.
     shop: ShopIdentity;
-    initialFeaturedCollectionProducts?: StorefrontProduct[];
-    initialFeaturedProduct?: (ProductDetail & { variants?: ProductVariant[] }) | null;
-    initialCollectionListCollections?: CollectionSummary[];
+    // Real-data section types can now have multiple instances (Add Section
+    // allows duplicates, matching the reference), so SSR-fetched initial
+    // data is keyed by the owning instance's id rather than one flat prop
+    // per type.
+    initialFeaturedCollectionProducts?: Record<string, StorefrontProduct[]>;
+    initialFeaturedProducts?: Record<string, (ProductDetail & { variants?: ProductVariant[] }) | null>;
+    initialCollectionListCollections?: Record<string, CollectionSummary[]>;
 }
 
-function SectionOutline({ label, active }: { label: string; active: boolean }) {
-    if (!active) return null;
+// Only rendered at all in editor preview — on real storefront traffic
+// isEditorPreview is always false, so this returns null and no hover/ring
+// affordance can ever leak to a real customer. Requires the section's own
+// wrapping div (sectionProps below) to carry the "group" class so
+// group-hover: below can key off it. Matches Fype-E-Commerce-UI's (read-only
+// design reference) newer hover-highlight-plus-name-badge polish added in
+// commit dc33eb4 — the label is now always mounted (fades in via opacity),
+// not conditionally rendered only when active, and hovering an unselected
+// section shows a ring too, not just the active one — makes sections that
+// have no visible content yet (e.g. an empty Rich Text) discoverable.
+function SectionOutline({ label, active, isEditorPreview }: { label: string; active: boolean; isEditorPreview: boolean }) {
+    if (!isEditorPreview) return null;
     return (
         // z-100: above every in-section element (Header's own bar is z-40,
         // its announcement bar z-50, its mobile drawer z-60/z-70) — an
         // editor selection outline must always paint on top of real content.
-        <div className="absolute inset-0 z-100 pointer-events-none ring-2 ring-inset ring-blue-500">
-            <span className="absolute -top-px left-0 bg-blue-500 text-white text-[11px] font-medium px-2 py-0.5">{label}</span>
+        <div
+            className={`absolute inset-0 z-100 pointer-events-none transition-colors ${
+                active ? "ring-2 ring-inset ring-blue-500" : "ring-0 group-hover:ring-1 group-hover:ring-inset group-hover:ring-blue-400"
+            }`}
+        >
+            <span
+                className={`absolute -top-px left-0 bg-blue-500 text-white text-[11px] font-medium px-2 py-0.5 transition-opacity ${
+                    active ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                }`}
+            >
+                {label}
+            </span>
         </div>
     );
 }
@@ -96,12 +127,12 @@ export default function SparkHome({
     initialConfig,
     navItems,
     shop,
-    initialFeaturedCollectionProducts = [],
-    initialFeaturedProduct = null,
-    initialCollectionListCollections = [],
+    initialFeaturedCollectionProducts = {},
+    initialFeaturedProducts = {},
+    initialCollectionListCollections = {},
 }: SparkHomeProps) {
     const [liveConfig, setLiveConfig] = useState(initialConfig);
-    const [activeSection, setActiveSection] = useState<SparkSectionKey | null>(null);
+    const [activeSection, setActiveSection] = useState<SparkActiveSectionId | null>(null);
     const [activeBlock, setActiveBlock] = useState<SparkActiveBlock | null>(null);
     // Set once on mount (client-only, see effect below) — used to gate both
     // the postMessage listener AND click-to-select-in-canvas, and to stop
@@ -124,7 +155,7 @@ export default function SparkHome({
             if (event.data.type === SPARK_DRAFT_UPDATE) {
                 setLiveConfig((current) => mergeSparkConfig(current, event.data.config as SparkConfigOverride));
             } else if (event.data.type === SPARK_SET_ACTIVE_SECTION) {
-                setActiveSection((event.data.section as SparkSectionKey | null) ?? null);
+                setActiveSection((event.data.section as SparkActiveSectionId | null) ?? null);
             } else if (event.data.type === SPARK_SET_ACTIVE_BLOCK) {
                 setActiveBlock((event.data.block as SparkActiveBlock | null) ?? null);
             }
@@ -142,25 +173,28 @@ export default function SparkHome({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const {
-        header,
-        image_banner: imageBanner,
-        announcement_bar: announcementBar,
-        rich_text: richText,
-        featured_collection: featuredCollection,
-        featured_product: featuredProduct,
-        multicolumn,
-        image_with_text: imageWithText,
-        collection_list: collectionList,
-        slideshow,
-        collapsible_content: collapsibleContent,
-        contact_form: contactForm,
-    } = liveConfig.sections;
+    const { header, announcement_bar: announcementBar, body, footer } = liveConfig.sections;
+    const { colors: colorSchemeSettings, logo: logoSettings, social_media: socialMedia } = liveConfig.theme_settings;
     const navigation = navItems.length > 0 ? navItems : header.settings.navigation.map((label) => ({ label, href: "/products" }));
 
-    const selectSection = (section: SparkSectionKey) => {
-        setActiveSection(section);
-        window.parent.postMessage({ type: SPARK_SECTION_CLICKED, section }, "*");
+    // Matches the reference exactly: only background/backgroundGradient/text
+    // of the active scheme are applied, as an inline style on the page root
+    // — solid_button_background/outline_button/shadow are editable in the
+    // Theme Settings panel but not consumed by any rendering yet, same as
+    // the reference itself (see sparkConfig.ts's SparkColorScheme comment).
+    const activeScheme =
+        colorSchemeSettings.schemes.find((s) => s.id === colorSchemeSettings.active_scheme_id) ?? colorSchemeSettings.schemes[0];
+    const rootStyle = activeScheme
+        ? {
+              backgroundColor: activeScheme.background,
+              backgroundImage: activeScheme.background_gradient || undefined,
+              color: activeScheme.text,
+          }
+        : undefined;
+
+    const selectSection = (sectionId: string) => {
+        setActiveSection(sectionId);
+        window.parent.postMessage({ type: SPARK_SECTION_CLICKED, section: sectionId }, "*");
     };
 
     const selectBlock = (block: SparkActiveBlock) => {
@@ -173,13 +207,13 @@ export default function SparkHome({
     // the capture phase runs before those <Link>s' own click handlers,
     // which (like every Next.js Link) skip navigation when the event
     // arrives already defaultPrevented.
-    const sectionProps = (section: SparkSectionKey) =>
+    const sectionProps = (sectionId: string) =>
         isEditorPreview
             ? {
-                  className: "relative cursor-pointer",
+                  className: "relative group cursor-pointer",
                   onClickCapture: (e: React.MouseEvent) => {
                       e.preventDefault();
-                      selectSection(section);
+                      selectSection(sectionId);
                   },
               }
             : { className: "relative" };
@@ -190,139 +224,142 @@ export default function SparkHome({
     const visibleAnnouncementBlocks = announcementBar.settings.show
         ? announcementBar.settings.blocks.filter((b) => !b.hidden)
         : [];
-    const visibleBannerSlides = imageBanner.banner_slides.filter((s) => !s.hidden);
-    const visibleRichTextBlocks = richText.blocks.filter((b) => !b.hidden);
-    const visibleColumns = multicolumn.blocks.filter((b) => !b.hidden);
-    const visibleImageWithTextBlocks = imageWithText.blocks.filter((b) => !b.hidden);
-    const visibleSlides = slideshow.blocks.filter((s) => !s.hidden);
-    const visibleFaqItems = collapsibleContent.blocks.filter((b) => !b.hidden);
+
+    const renderBodySection = (section: SparkBodySection) => {
+        const activeBlockId = activeBlock?.sectionId === section.id ? activeBlock.id : null;
+        switch (section.type) {
+            case "image_banner":
+                return (
+                    <BannerSlider
+                        settings={section.settings}
+                        slides={section.banner_slides.filter((s) => !s.hidden)}
+                        isEditorPreview={isEditorPreview}
+                        activeSlideId={activeBlockId}
+                        onSlideClick={(id) => selectBlock({ sectionId: section.id, kind: "banner_slide", id })}
+                    />
+                );
+            case "rich_text":
+                return (
+                    <RichText
+                        settings={section.settings}
+                        blocks={section.blocks.filter((b) => !b.hidden)}
+                        isEditorPreview={isEditorPreview}
+                        activeBlockId={activeBlockId}
+                        onBlockClick={(kind, id) => selectBlock({ sectionId: section.id, kind, id })}
+                    />
+                );
+            case "featured_collection":
+                return (
+                    <FeaturedCollection
+                        settings={section.settings}
+                        storeId={shop.shopId}
+                        globalTax={shop.settings?.tax}
+                        initialProducts={initialFeaturedCollectionProducts[section.id] ?? []}
+                        isEditorPreview={isEditorPreview}
+                    />
+                );
+            case "featured_product":
+                return (
+                    <FeaturedProduct
+                        settings={section.settings}
+                        storeId={shop.shopId}
+                        globalTax={shop.settings?.tax}
+                        initialProduct={initialFeaturedProducts[section.id] ?? null}
+                        isEditorPreview={isEditorPreview}
+                    />
+                );
+            case "multicolumn":
+                return (
+                    <Multicolumn
+                        settings={section.settings}
+                        blocks={section.blocks.filter((b) => !b.hidden)}
+                        isEditorPreview={isEditorPreview}
+                        activeBlockId={activeBlockId}
+                        onBlockClick={(id) => selectBlock({ sectionId: section.id, kind: "column", id })}
+                    />
+                );
+            case "image_with_text":
+                return (
+                    <ImageWithText
+                        settings={section.settings}
+                        blocks={section.blocks.filter((b) => !b.hidden)}
+                        isEditorPreview={isEditorPreview}
+                        activeBlockId={activeBlockId}
+                        onBlockClick={(kind, id) => selectBlock({ sectionId: section.id, kind, id })}
+                    />
+                );
+            case "collection_list":
+                return (
+                    <CollectionList
+                        settings={section.settings}
+                        storeId={shop.shopId}
+                        initialCollections={initialCollectionListCollections[section.id] ?? []}
+                        isEditorPreview={isEditorPreview}
+                    />
+                );
+            case "slideshow":
+                return (
+                    <Slideshow
+                        settings={section.settings}
+                        slides={section.blocks.filter((s) => !s.hidden)}
+                        isEditorPreview={isEditorPreview}
+                        activeSlideId={activeBlockId}
+                        onSlideClick={(id) => selectBlock({ sectionId: section.id, kind: "slide", id })}
+                    />
+                );
+            case "collapsible_content":
+                return (
+                    <CollapsibleContent
+                        settings={section.settings}
+                        items={section.blocks.filter((b) => !b.hidden)}
+                        isEditorPreview={isEditorPreview}
+                        activeBlockId={activeBlockId}
+                        onBlockClick={(id) => selectBlock({ sectionId: section.id, kind: "item", id })}
+                    />
+                );
+            case "contact_form":
+                return <ContactForm settings={section.settings} />;
+            default:
+                return null;
+        }
+    };
 
     return (
-        <div className="bg-white text-black">
+        <div className="bg-white text-black" style={rootStyle}>
             {!header.hidden && (
                 <div {...sectionProps("header")}>
-                    <SectionOutline label="Header" active={activeSection === "header"} />
+                    <SectionOutline label="Header" active={activeSection === "header"} isEditorPreview={isEditorPreview} />
                     <Header
                         header={header.settings}
                         navItems={navigation}
                         announcementBlocks={visibleAnnouncementBlocks}
                         isEditorPreview={isEditorPreview}
-                        activeAnnouncementId={activeBlock?.section === "header" ? activeBlock.id : null}
-                        onAnnouncementClick={(id) => selectBlock({ section: "header", kind: "announcement", id })}
+                        activeAnnouncementId={activeBlock?.sectionId === "header" ? activeBlock.id : null}
+                        onAnnouncementClick={(id) => selectBlock({ sectionId: "header", kind: "announcement", id })}
                     />
                 </div>
             )}
-            {!imageBanner.hidden && (
-                <div {...sectionProps("image_banner")}>
-                    <SectionOutline label="Image Banner" active={activeSection === "image_banner"} />
-                    <BannerSlider
-                        settings={imageBanner.settings}
-                        slides={visibleBannerSlides}
+            {body.map((section) =>
+                section.hidden ? null : (
+                    <div key={section.id} {...sectionProps(section.id)}>
+                        <SectionOutline label={BODY_SECTION_LABELS[section.type]} active={activeSection === section.id} isEditorPreview={isEditorPreview} />
+                        {renderBodySection(section)}
+                    </div>
+                )
+            )}
+            {!footer.hidden && (
+                <div {...sectionProps("footer")}>
+                    <SectionOutline label="Footer" active={activeSection === "footer"} isEditorPreview={isEditorPreview} />
+                    <Footer
+                        settings={footer.settings}
+                        blocks={footer.blocks.filter((b) => !b.hidden)}
+                        socialMedia={socialMedia}
+                        footerLogoUrl={logoSettings.footer_logo_url}
+                        footerLogoWidth={logoSettings.footer_logo_width}
                         isEditorPreview={isEditorPreview}
-                        activeSlideId={activeBlock?.section === "image_banner" ? activeBlock.id : null}
-                        onSlideClick={(id) => selectBlock({ section: "image_banner", kind: "banner_slide", id })}
+                        activeBlockId={activeBlock?.sectionId === "footer" ? activeBlock.id : null}
+                        onBlockClick={(kind, id) => selectBlock({ sectionId: "footer", kind, id })}
                     />
-                </div>
-            )}
-            {!richText.hidden && (
-                <div {...sectionProps("rich_text")}>
-                    <SectionOutline label="Rich Text" active={activeSection === "rich_text"} />
-                    <RichText
-                        settings={richText.settings}
-                        blocks={visibleRichTextBlocks}
-                        isEditorPreview={isEditorPreview}
-                        activeBlockId={activeBlock?.section === "rich_text" ? activeBlock.id : null}
-                        onBlockClick={(kind, id) => selectBlock({ section: "rich_text", kind, id })}
-                    />
-                </div>
-            )}
-            {!featuredCollection.hidden && (
-                <div {...sectionProps("featured_collection")}>
-                    <SectionOutline label="Featured Collection" active={activeSection === "featured_collection"} />
-                    <FeaturedCollection
-                        settings={featuredCollection.settings}
-                        storeId={shop.shopId}
-                        globalTax={shop.settings?.tax}
-                        initialProducts={initialFeaturedCollectionProducts}
-                        isEditorPreview={isEditorPreview}
-                    />
-                </div>
-            )}
-            {!featuredProduct.hidden && (
-                <div {...sectionProps("featured_product")}>
-                    <SectionOutline label="Featured Product" active={activeSection === "featured_product"} />
-                    <FeaturedProduct
-                        settings={featuredProduct.settings}
-                        storeId={shop.shopId}
-                        globalTax={shop.settings?.tax}
-                        initialProduct={initialFeaturedProduct}
-                        isEditorPreview={isEditorPreview}
-                    />
-                </div>
-            )}
-            {!multicolumn.hidden && (
-                <div {...sectionProps("multicolumn")}>
-                    <SectionOutline label="Multicolumn" active={activeSection === "multicolumn"} />
-                    <Multicolumn
-                        settings={multicolumn.settings}
-                        blocks={visibleColumns}
-                        isEditorPreview={isEditorPreview}
-                        activeBlockId={activeBlock?.section === "multicolumn" ? activeBlock.id : null}
-                        onBlockClick={(id) => selectBlock({ section: "multicolumn", kind: "column", id })}
-                    />
-                </div>
-            )}
-            {!imageWithText.hidden && (
-                <div {...sectionProps("image_with_text")}>
-                    <SectionOutline label="Image with Text" active={activeSection === "image_with_text"} />
-                    <ImageWithText
-                        settings={imageWithText.settings}
-                        blocks={visibleImageWithTextBlocks}
-                        isEditorPreview={isEditorPreview}
-                        activeBlockId={activeBlock?.section === "image_with_text" ? activeBlock.id : null}
-                        onBlockClick={(kind, id) => selectBlock({ section: "image_with_text", kind, id })}
-                    />
-                </div>
-            )}
-            {!collectionList.hidden && (
-                <div {...sectionProps("collection_list")}>
-                    <SectionOutline label="Collection List" active={activeSection === "collection_list"} />
-                    <CollectionList
-                        settings={collectionList.settings}
-                        storeId={shop.shopId}
-                        initialCollections={initialCollectionListCollections}
-                        isEditorPreview={isEditorPreview}
-                    />
-                </div>
-            )}
-            {!slideshow.hidden && (
-                <div {...sectionProps("slideshow")}>
-                    <SectionOutline label="Slideshow" active={activeSection === "slideshow"} />
-                    <Slideshow
-                        settings={slideshow.settings}
-                        slides={visibleSlides}
-                        isEditorPreview={isEditorPreview}
-                        activeSlideId={activeBlock?.section === "slideshow" ? activeBlock.id : null}
-                        onSlideClick={(id) => selectBlock({ section: "slideshow", kind: "slide", id })}
-                    />
-                </div>
-            )}
-            {!collapsibleContent.hidden && (
-                <div {...sectionProps("collapsible_content")}>
-                    <SectionOutline label="Collapsible Content" active={activeSection === "collapsible_content"} />
-                    <CollapsibleContent
-                        settings={collapsibleContent.settings}
-                        items={visibleFaqItems}
-                        isEditorPreview={isEditorPreview}
-                        activeBlockId={activeBlock?.section === "collapsible_content" ? activeBlock.id : null}
-                        onBlockClick={(id) => selectBlock({ section: "collapsible_content", kind: "item", id })}
-                    />
-                </div>
-            )}
-            {!contactForm.hidden && (
-                <div {...sectionProps("contact_form")}>
-                    <SectionOutline label="Contact Form" active={activeSection === "contact_form"} />
-                    <ContactForm settings={contactForm.settings} />
                 </div>
             )}
         </div>

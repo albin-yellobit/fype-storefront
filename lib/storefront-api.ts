@@ -170,6 +170,60 @@ export async function getCollectionBySlug(apiBaseUrl: string, storeId: string, s
     }
 }
 
+export interface CollectionListParams {
+    search?: string;
+    page?: number;
+    limit?: number;
+}
+
+export interface CollectionListResult {
+    collections: CollectionSummary[];
+    pagination: PaginationMeta | null;
+}
+
+// All active collections for a store, paginated — storefront-facing
+// equivalent of getAllProducts. Normalizes fetchCollections's admin-shaped
+// pagination ({total, page, limit, totalPages, hasNextPage, hasPrevPage})
+// into PaginationMeta. Explicitly passes status=active — the backend
+// endpoint does NOT filter by status unless asked (unlike isActive, which
+// defaults true), so a draft collection would otherwise leak into the
+// public listing.
+export async function getAllCollections(
+    apiBaseUrl: string,
+    storeId: string,
+    params: CollectionListParams = {}
+): Promise<CollectionListResult> {
+    const query = new URLSearchParams();
+    query.set("status", "active");
+    if (params.search) query.set("search", params.search);
+    query.set("page", String(params.page ?? 1));
+    query.set("limit", String(params.limit ?? 100));
+
+    try {
+        const json = await fetchJson<{
+            data: {
+                collections: CollectionSummary[];
+                pagination?: { total: number; page: number; limit: number; totalPages: number; hasNextPage: boolean; hasPrevPage: boolean };
+            };
+        }>(`${apiBaseUrl}/commerce/${storeId}/products/collections?${query.toString()}`, CATEGORY_REVALIDATE);
+
+        const raw = json.data.pagination;
+        const pagination: PaginationMeta | null = raw
+            ? {
+                  currentPage: raw.page,
+                  totalPages: raw.totalPages,
+                  totalItems: raw.total,
+                  itemsPerPage: raw.limit,
+                  hasNextPage: raw.hasNextPage,
+                  hasPrevPage: raw.hasPrevPage,
+              }
+            : null;
+        return { collections: json.data.collections ?? [], pagination };
+    } catch {
+        return { collections: [], pagination: null };
+    }
+}
+
 export async function getCategories(
     apiBaseUrl: string,
     storeId: string,
