@@ -333,6 +333,8 @@ export default function SparkHome({
                         header={header.settings}
                         navItems={navigation}
                         announcementBlocks={visibleAnnouncementBlocks}
+                        logoUrl={logoSettings.logo_url}
+                        logoWidth={logoSettings.logo_width}
                         isEditorPreview={isEditorPreview}
                         activeAnnouncementId={activeBlock?.sectionId === "header" ? activeBlock.id : null}
                         onAnnouncementClick={(id) => selectBlock({ sectionId: "header", kind: "announcement", id })}

@@ -81,6 +81,8 @@ export default function SparkCollections({ initialConfig, shop, navItems, collec
                     header={{ ...header.settings, logo_text: shop.shopName }}
                     navItems={navigation}
                     announcementBlocks={visibleAnnouncementBlocks}
+                    logoUrl={logoSettings.logo_url}
+                    logoWidth={logoSettings.logo_width}
                 />
             )}
 

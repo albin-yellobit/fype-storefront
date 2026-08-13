@@ -9,6 +9,10 @@ interface SparkHeaderProps {
     header: SparkHeaderSettings;
     navItems: Array<{ label: string; href: string }>;
     announcementBlocks: SparkAnnouncementBarBlock[];
+    // Store-wide logo (Theme settings panel), not the per-header-section
+    // Logo Image toggle — this is the only logo upload path that's wired up.
+    logoUrl?: string;
+    logoWidth?: number;
     // Editor-preview-only: lets the merchant click a specific announcement
     // block directly in the live canvas (not just pick it from the editor's
     // own block list) and see it highlighted, matching the reference's
@@ -31,6 +35,8 @@ export default function Header({
     header,
     navItems,
     announcementBlocks,
+    logoUrl,
+    logoWidth = 120,
     isEditorPreview = false,
     activeAnnouncementId = null,
     onAnnouncementClick,
@@ -63,9 +69,7 @@ export default function Header({
     const containerTextColor = isScroll ? "inherit" : activeBlockSettings?.text_color || "#ffffff";
 
     const {
-        logo_type: logoType,
         logo_text: logoText,
-        logo_image_url: logoImageUrl,
         logo_position: logoPosition,
         menu_style: menuStyle,
         sticky_header: isSticky,
@@ -83,13 +87,12 @@ export default function Header({
 
     const logoContent = (
         <Link href="/" className="flex items-center gap-3">
-            {(logoType === "Logo Image" || logoType === "Text + Logo Image") && logoImageUrl && (
-                <span className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-xs overflow-hidden shrink-0">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- store-uploaded logo, arbitrary remote origin not worth a next/image remotePatterns entry for an 8x8 avatar-style crop */}
-                    <img src={logoImageUrl} className="w-full h-full object-cover" alt={logoText || "Logo"} />
+            {logoUrl ? (
+                <span className="flex items-center shrink-0 overflow-hidden" style={{ width: `${logoWidth}px` }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element -- store-uploaded logo, arbitrary remote origin not worth a next/image remotePatterns entry */}
+                    <img src={logoUrl} className="w-full h-auto max-h-12 object-contain" alt={logoText || "Logo"} />
                 </span>
-            )}
-            {(logoType === "Text Only" || logoType === "Text + Logo Image") && (
+            ) : (
                 <span className="font-black tracking-tighter text-2xl hover:opacity-80 transition-opacity">{logoText}</span>
             )}
         </Link>

@@ -146,6 +146,8 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
                         header={{ ...header.settings, logo_text: shop.shopName }}
                         navItems={navigation}
                         announcementBlocks={visibleAnnouncementBlocks}
+                        logoUrl={logoSettings.logo_url}
+                        logoWidth={logoSettings.logo_width}
                     />
                 )}
                 <div className="flex justify-center items-center min-h-[50vh] text-black/60">Product not found</div>
@@ -209,6 +211,8 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
                     header={{ ...header.settings, logo_text: shop.shopName }}
                     navItems={navigation}
                     announcementBlocks={visibleAnnouncementBlocks}
+                    logoUrl={logoSettings.logo_url}
+                    logoWidth={logoSettings.logo_width}
                 />
             )}
 
