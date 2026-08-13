@@ -140,13 +140,20 @@ export default function Header({
         const isActive = activeAnnouncementId === block.id;
         return (
             <div
-                className={`cursor-pointer rounded-sm ${isActive ? "ring-2 ring-blue-500" : "hover:ring-1 hover:ring-blue-300"}`}
+                className={`relative group/block cursor-pointer rounded-sm ${isActive ? "ring-2 ring-blue-500" : "hover:ring-2 hover:ring-blue-400"}`}
                 onClick={(e) => {
                     e.stopPropagation();
                     e.preventDefault();
                     onAnnouncementClick?.(block.id);
                 }}
             >
+                <div
+                    className={`absolute -top-5 left-0 bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 whitespace-nowrap z-30 transition-opacity ${
+                        isActive ? "opacity-100" : "opacity-0 group-hover/block:opacity-100"
+                    }`}
+                >
+                    Announcement Bar
+                </div>
                 {inner}
             </div>
         );

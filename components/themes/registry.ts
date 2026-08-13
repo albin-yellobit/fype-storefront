@@ -63,6 +63,7 @@ export interface ProductDetailsPageProps {
     variants: ProductVariant[];
     variantOptions: VariantOptions | null;
     relatedProducts: StorefrontProduct[];
+    themeConfig?: Record<string, unknown>;
 }
 
 // Props for a theme's self-contained Cart page.
@@ -84,6 +85,7 @@ export interface CollectionPageProps {
     footerPages: Page[];
     collection: CollectionSummary;
     products: StorefrontProduct[];
+    themeConfig?: Record<string, unknown>;
 }
 
 // Props for a theme's self-contained Collections (list-all-collections)

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "./Header";
+import Footer from "./sections/Footer";
 import { mergeSparkConfig, type SparkConfig, type SparkConfigOverride } from "./sparkConfig";
 import { SPARK_DRAFT_READY, SPARK_DRAFT_UPDATE, SPARK_SECTION_CLICKED, SPARK_SET_ACTIVE_SECTION } from "./SparkHome";
 import type { CollectionSummary, ShopIdentity } from "@/types/storefront";
@@ -59,17 +60,29 @@ export default function SparkCollections({ initialConfig, shop, navItems, collec
     const settings = liveConfig.page_settings.collections;
     const gridClass = COLLECTIONS_PER_ROW_CLASSES[settings.collections_per_row];
 
+    // Header/Footer are global across every Spark page, not Home-only — see
+    // SparkShop.tsx's identical comment for the full rationale.
+    const { header, announcement_bar: announcementBar, footer } = liveConfig.sections;
+    const { logo: logoSettings, social_media: socialMedia } = liveConfig.theme_settings;
+    const visibleAnnouncementBlocks = announcementBar.settings.show ? announcementBar.settings.blocks.filter((b) => !b.hidden) : [];
+    // Same fallback as SparkHome.tsx: an un-configured store (no real
+    // navigation Pages yet) still shows a populated nav bar, using the
+    // theme's own default label list rather than an empty menu.
+    const navigation = navItems.length > 0 ? navItems : header.settings.navigation.map((label) => ({ label, href: "/products" }));
+
     const selectLayout = () => {
         window.parent.postMessage({ type: SPARK_SECTION_CLICKED, section: "page_settings:collections" }, "*");
     };
 
     return (
         <div className="bg-white text-black min-h-screen">
-            <Header
-                header={{ ...liveConfig.sections.header.settings, logo_text: shop.shopName }}
-                navItems={navItems}
-                announcementBlocks={[]}
-            />
+            {!header.hidden && (
+                <Header
+                    header={{ ...header.settings, logo_text: shop.shopName }}
+                    navItems={navigation}
+                    announcementBlocks={visibleAnnouncementBlocks}
+                />
+            )}
 
             <div
                 className="relative"
@@ -147,6 +160,16 @@ export default function SparkCollections({ initialConfig, shop, navItems, collec
                 )}
             </div>
             </div>
+
+            {!footer.hidden && (
+                <Footer
+                    settings={footer.settings}
+                    blocks={footer.blocks.filter((b) => !b.hidden)}
+                    socialMedia={socialMedia}
+                    footerLogoUrl={logoSettings.footer_logo_url}
+                    footerLogoWidth={logoSettings.footer_logo_width}
+                />
+            )}
         </div>
     );
 }

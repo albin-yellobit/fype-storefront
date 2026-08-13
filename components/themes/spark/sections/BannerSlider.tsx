@@ -79,7 +79,7 @@ export default function BannerSlider({ settings, slides, isEditorPreview = false
 
     return (
         <div
-            className={`relative w-full overflow-hidden ${heightClass}`}
+            className={`relative w-full overflow-hidden ${heightClass} ${isEditorPreview ? "group/block" : ""}`}
             style={{
                 backgroundColor: settings.background_color,
                 paddingTop: settings.padding_top,
@@ -184,12 +184,16 @@ export default function BannerSlider({ settings, slides, isEditorPreview = false
             {isEditorPreview && (
                 <div
                     className={`absolute inset-0 pointer-events-none z-50 ${
-                        activeSlideId === slide.id ? "ring-2 ring-blue-500 ring-inset" : "hover:ring-1 hover:ring-blue-300 ring-inset"
+                        activeSlideId === slide.id ? "ring-2 ring-blue-500 ring-inset" : "group-hover/block:ring-2 group-hover/block:ring-blue-400 ring-inset"
                     }`}
                 >
-                    {activeSlideId === slide.id && (
-                        <div className="absolute top-0 left-0 bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 whitespace-nowrap">Banner Slide</div>
-                    )}
+                    <div
+                        className={`absolute top-0 left-0 bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 whitespace-nowrap transition-opacity ${
+                            activeSlideId === slide.id ? "opacity-100" : "opacity-0 group-hover/block:opacity-100"
+                        }`}
+                    >
+                        Banner Slide
+                    </div>
                 </div>
             )}
         </div>

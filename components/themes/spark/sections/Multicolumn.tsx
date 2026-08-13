@@ -81,13 +81,20 @@ export default function Multicolumn({ settings, blocks, isEditorPreview = false,
                         return (
                             <div
                                 key={block.id}
-                                className={`cursor-pointer rounded-md ${isActive ? "ring-2 ring-blue-500 relative z-10" : "hover:ring-1 hover:ring-blue-300"}`}
+                                className={`relative group/block cursor-pointer rounded-md ${isActive ? "ring-2 ring-blue-500 z-10" : "hover:ring-2 hover:ring-blue-400 z-10"}`}
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     e.preventDefault();
                                     onBlockClick?.(block.id);
                                 }}
                             >
+                                <div
+                                    className={`absolute -top-5 left-0 bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 whitespace-nowrap z-30 transition-opacity ${
+                                        isActive ? "opacity-100" : "opacity-0 group-hover/block:opacity-100"
+                                    }`}
+                                >
+                                    Column
+                                </div>
                                 {content}
                             </div>
                         );

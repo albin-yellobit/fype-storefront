@@ -51,11 +51,11 @@ export default function Slideshow({ settings, slides, isEditorPreview = false, a
             className={isSleek ? "px-6 max-w-7xl mx-auto relative" : "relative"}
         >
             <div
-                className={
+                className={`${
                     isSleek
                         ? "w-full relative rounded-2xl overflow-hidden aspect-[16/9] md:aspect-[21/9] shadow-sm bg-gray-100"
                         : "h-[500px] md:h-[600px] relative overflow-hidden"
-                }
+                } ${isEditorPreview ? "group/block" : ""}`}
                 onClick={
                     isEditorPreview
                         ? (e) => {
@@ -170,12 +170,16 @@ export default function Slideshow({ settings, slides, isEditorPreview = false, a
                 {isEditorPreview && (
                     <div
                         className={`absolute inset-0 pointer-events-none z-50 ${
-                            activeSlideId === slide.id ? "ring-2 ring-blue-500 ring-inset" : "hover:ring-1 hover:ring-blue-300 ring-inset"
+                            activeSlideId === slide.id ? "ring-2 ring-blue-500 ring-inset" : "group-hover/block:ring-2 group-hover/block:ring-blue-400 ring-inset"
                         }`}
                     >
-                        {activeSlideId === slide.id && (
-                            <div className="absolute top-0 left-0 bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 whitespace-nowrap">Slide</div>
-                        )}
+                        <div
+                            className={`absolute top-0 left-0 bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 whitespace-nowrap transition-opacity ${
+                                activeSlideId === slide.id ? "opacity-100" : "opacity-0 group-hover/block:opacity-100"
+                            }`}
+                        >
+                            Slide
+                        </div>
                     </div>
                 )}
             </div>

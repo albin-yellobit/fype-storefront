@@ -28,16 +28,20 @@ export default function RichText({ settings, blocks, isEditorPreview = false, ac
         const isActive = activeBlockId === id;
         return (
             <div
-                className={`relative w-full cursor-pointer ${isActive ? "ring-2 ring-blue-500 rounded-sm" : "hover:ring-1 hover:ring-blue-300 rounded-sm"}`}
+                className={`relative w-full group/block cursor-pointer ${isActive ? "ring-2 ring-blue-500 rounded-sm" : "hover:ring-2 hover:ring-blue-400 rounded-sm"}`}
                 onClick={(e) => {
                     e.stopPropagation();
                     e.preventDefault();
                     onBlockClick?.(kind, id);
                 }}
             >
-                {isActive && (
-                    <div className="absolute -top-5 left-0 bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 whitespace-nowrap z-30">{label}</div>
-                )}
+                <div
+                    className={`absolute -top-5 left-0 bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 whitespace-nowrap z-30 transition-opacity ${
+                        isActive ? "opacity-100" : "opacity-0 group-hover/block:opacity-100"
+                    }`}
+                >
+                    {label}
+                </div>
                 {children}
             </div>
         );

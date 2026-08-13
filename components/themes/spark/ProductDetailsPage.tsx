@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { ProductDetailsPageProps } from "@/components/themes/registry";
 import Header from "./Header";
+import Footer from "./sections/Footer";
 import ProductGallery from "./ProductGallery";
-import { sparkDefaultConfig } from "./sparkConfig";
+import { mergeSparkConfig, sparkDefaultConfig, type SparkConfigOverride } from "./sparkConfig";
+import { SPARK_DRAFT_READY, SPARK_DRAFT_UPDATE, SPARK_SECTION_CLICKED, SPARK_SET_ACTIVE_SECTION } from "./SparkHome";
 import AuthModal from "@/components/shared/AuthModal";
 import { calculateProductTax } from "@/utils/taxCalculator";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
@@ -15,10 +17,52 @@ import { addToCart, addToGuestCart, addToWishlist, fetchCart, fetchGuestCart, re
 // resolution, guest-vs-authenticated cart dispatch, wishlist toggle) —
 // restyled to match the Spark design reference (generic option buttons
 // standing in for its hardcoded "size" selector, quantity stepper, gallery
-// with thumbnails). No Spark Footer yet — same deferral as HomePage.tsx.
-export default function ProductDetailsPage({ shop, navPages, product, variants, variantOptions, relatedProducts }: ProductDetailsPageProps) {
+// with thumbnails).
+//
+// Unlike Shop/Collections/Collection Page, no separate Server/Client split
+// wrapper exists here — this component was already "use client" (variant
+// selection, cart dispatch), so the live-editing postMessage listener is
+// embedded directly instead of adding a redundant wrapper layer.
+export default function ProductDetailsPage({ shop, navPages, product, variants, variantOptions, relatedProducts, themeConfig }: ProductDetailsPageProps) {
     const dispatch = useAppDispatch();
     const { isAuthenticated, wishlist } = useAppSelector((state) => state.user);
+
+    const [liveConfig, setLiveConfig] = useState(() => mergeSparkConfig(sparkDefaultConfig, themeConfig));
+    const [isEditorPreview, setIsEditorPreview] = useState(false);
+    const [isSelected, setIsSelected] = useState(false);
+    const [hoveringLayout, setHoveringLayout] = useState(false);
+
+    useEffect(() => {
+        if (typeof window === "undefined" || window.parent === window) return;
+        if (new URLSearchParams(window.location.search).get("editorPreview") !== "1") return;
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setIsEditorPreview(true);
+
+        function handleMessage(event: MessageEvent) {
+            if (event.source !== window.parent || !event.data) return;
+            if (event.data.type === SPARK_DRAFT_UPDATE) {
+                setLiveConfig((current) => mergeSparkConfig(current, event.data.config as SparkConfigOverride));
+            } else if (event.data.type === SPARK_SET_ACTIVE_SECTION) {
+                setIsSelected(event.data.section === "page_settings:product");
+            }
+        }
+
+        window.addEventListener("message", handleMessage);
+        window.parent.postMessage({ type: SPARK_DRAFT_READY, config: liveConfig }, "*");
+        return () => window.removeEventListener("message", handleMessage);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const settings = liveConfig.page_settings.product;
+    // Header/Footer are global across every Spark page, not Home-only — see
+    // SparkShop.tsx's identical comment for the full rationale.
+    const { header, announcement_bar: announcementBar, footer } = liveConfig.sections;
+    const { logo: logoSettings, social_media: socialMedia } = liveConfig.theme_settings;
+    const visibleAnnouncementBlocks = announcementBar.settings.show ? announcementBar.settings.blocks.filter((b) => !b.hidden) : [];
+
+    const selectLayout = () => {
+        window.parent.postMessage({ type: SPARK_SECTION_CLICKED, section: "page_settings:product" }, "*");
+    };
 
     const isWishlisted = !!product && wishlist.includes(product.productId);
     const hasVariants = product?.hasVariants ?? false;
@@ -89,16 +133,31 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
     const navItems = navPages
         .filter((p) => p.isActive && p.status === "visible" && p.pageType === "generic")
         .map((p) => ({ label: p.title, href: `/${p.slug}` }));
+    // Same fallback as SparkHome.tsx: an un-configured store (no real
+    // navigation Pages yet) still shows a populated nav bar, using the
+    // theme's own default label list rather than an empty menu.
+    const navigation = navItems.length > 0 ? navItems : header.settings.navigation.map((label) => ({ label, href: "/products" }));
 
     if (!product) {
         return (
             <div className="bg-white text-black min-h-screen">
-                <Header
-                    header={{ ...sparkDefaultConfig.sections.header.settings, logo_text: shop.shopName }}
-                    navItems={navItems}
-                    announcementBlocks={[]}
-                />
+                {!header.hidden && (
+                    <Header
+                        header={{ ...header.settings, logo_text: shop.shopName }}
+                        navItems={navigation}
+                        announcementBlocks={visibleAnnouncementBlocks}
+                    />
+                )}
                 <div className="flex justify-center items-center min-h-[50vh] text-black/60">Product not found</div>
+                {!footer.hidden && (
+                    <Footer
+                        settings={footer.settings}
+                        blocks={footer.blocks.filter((b) => !b.hidden)}
+                        socialMedia={socialMedia}
+                        footerLogoUrl={logoSettings.footer_logo_url}
+                        footerLogoWidth={logoSettings.footer_logo_width}
+                    />
+                )}
             </div>
         );
     }
@@ -106,6 +165,11 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
     const handleOptionChange = (name: string, value: string) => setSelectedOptions((prev) => ({ ...prev, [name]: value }));
 
     const handleWishlistToggle = () => {
+        // Real cart/wishlist mutations must never fire while the editor
+        // iframe is open, matching the same disableQuickAdd/disableAddToCart
+        // convention every other product-card call site already uses — the
+        // button stays visible (not hidden), just inert.
+        if (isEditorPreview) return;
         if (!isAuthenticated) {
             setIsAuthModalOpen(true);
             return;
@@ -115,7 +179,7 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
     };
 
     const handleAddToCart = async () => {
-        if (!displayData.available) return;
+        if (!displayData.available || isEditorPreview) return;
         const variantId = hasVariants && selectedVariant ? selectedVariant.variantId : undefined;
 
         if (isAuthenticated) {
@@ -134,24 +198,57 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
         rate: displayData.taxRate,
     });
 
+    const hasDescription = Boolean(product.description && product.description.replace(/<[^>]*>/g, "").trim());
+    const showDescriptionBelowTitle = settings.show_description && hasDescription && settings.description_position === "Below Product Title";
+    const showDescriptionBelowCart = settings.show_description && hasDescription && settings.description_position !== "Below Product Title";
+
     return (
         <div className="bg-white text-black min-h-screen pb-20">
-            <Header
-                header={{ ...sparkDefaultConfig.sections.header.settings, logo_text: shop.shopName }}
-                navItems={navItems}
-                announcementBlocks={[]}
-            />
+            {!header.hidden && (
+                <Header
+                    header={{ ...header.settings, logo_text: shop.shopName }}
+                    navItems={navigation}
+                    announcementBlocks={visibleAnnouncementBlocks}
+                />
+            )}
 
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center text-sm text-gray-500">
-                <Link href="/products" className="hover:text-black transition-colors">
-                    Shop
-                </Link>
-                <span className="material-symbols-outlined text-base mx-2">chevron_right</span>
-                <span className="text-black">{product.name}</span>
-            </div>
+            <div
+                className="relative"
+                onClick={isEditorPreview ? selectLayout : undefined}
+                onMouseOver={isEditorPreview ? () => setHoveringLayout(true) : undefined}
+                onMouseLeave={isEditorPreview ? () => setHoveringLayout(false) : undefined}
+            >
+                {isEditorPreview && (isSelected || hoveringLayout) && (
+                    <div className="absolute inset-0 pointer-events-none z-60 border-2 border-blue-500 transition-colors">
+                        {isSelected && (
+                            <div className="absolute top-0 left-0 bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 flex items-center gap-1 z-65">
+                                <span className="material-symbols-outlined text-xs">widgets</span> Product Page Layout
+                            </div>
+                        )}
+                        {hoveringLayout && (
+                            <div className="absolute inset-0 bg-white/5 backdrop-blur-[1px] flex flex-col items-center justify-center transition-opacity">
+                                <div className="bg-white px-6 py-4 rounded-xl shadow-xl border border-gray-100 flex flex-col items-center pointer-events-auto">
+                                    <span className="material-symbols-outlined text-2xl text-gray-400 mb-2">widgets</span>
+                                    <h3 className="font-semibold text-lg text-gray-900 leading-tight">Product Page Layout</h3>
+                                    <p className="text-sm text-gray-500 text-center max-w-xs mt-1">Click to edit Product Page layout settings.</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+            {settings.show_breadcrumb && (
+                <div className="px-6 py-4 border-b border-gray-100 flex items-center text-sm text-gray-500">
+                    <Link href="/products" className="hover:text-black transition-colors">
+                        Shop
+                    </Link>
+                    <span className="material-symbols-outlined text-base mx-2">chevron_right</span>
+                    <span className="text-black">{product.name}</span>
+                </div>
+            )}
 
             <div className="max-w-7xl mx-auto px-6 py-8 md:py-12 flex flex-col md:flex-row gap-8 md:gap-16">
-                <ProductGallery images={displayData.images} productName={product.name} />
+                <ProductGallery images={displayData.images} productName={product.name} imageLayout={settings.image_layout} />
 
                 <div className="w-full md:w-1/2 flex flex-col pt-4">
                     <div className="mb-8 flex items-start justify-between gap-4">
@@ -164,10 +261,17 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
                                 )}
                             </div>
                             {product.display?.vendor && <p className="text-xs text-gray-500 mt-2">Vendor: {product.display.vendor}</p>}
+
+                            {showDescriptionBelowTitle && (
+                                <div className="prose prose-sm text-gray-500 mt-6">
+                                    <div dangerouslySetInnerHTML={{ __html: product.description }} />
+                                </div>
+                            )}
                         </div>
                         <button
                             onClick={handleWishlistToggle}
-                            className="shrink-0 p-2.5 rounded-full border border-gray-200 hover:bg-gray-50 transition-colors"
+                            disabled={isEditorPreview}
+                            className="shrink-0 p-2.5 rounded-full border border-gray-200 hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                             aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
                         >
                             <span
@@ -178,6 +282,17 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
                             </span>
                         </button>
                     </div>
+
+                    {settings.custom_link_label && settings.custom_link_url && (
+                        <div className="flex justify-end mb-4">
+                            <Link
+                                href={settings.custom_link_url}
+                                className="text-sm text-gray-500 underline underline-offset-4 hover:text-black transition-colors"
+                            >
+                                {settings.custom_link_label}
+                            </Link>
+                        </div>
+                    )}
 
                     <div className="space-y-8 mb-10">
                         {hasVariants && options.length > 0 && (
@@ -225,8 +340,8 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
 
                     <button
                         onClick={handleAddToCart}
-                        disabled={!displayData.available}
-                        className={`w-full py-4 rounded-xl font-medium tracking-wide transition-colors shadow-lg active:scale-[0.98] mb-4 ${
+                        disabled={!displayData.available || isEditorPreview}
+                        className={`w-full py-4 rounded-xl font-medium tracking-wide transition-colors shadow-lg active:scale-[0.98] mb-4 disabled:opacity-60 disabled:cursor-not-allowed ${
                             displayData.available ? "bg-black text-white hover:bg-gray-900" : "bg-gray-200 text-gray-400 cursor-not-allowed"
                         }`}
                     >
@@ -234,7 +349,7 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
                     </button>
                     {cartMessage && <p className="text-sm text-gray-500 mb-6">{cartMessage}</p>}
 
-                    {product.description && product.description.replace(/<[^>]*>/g, "").trim() && (
+                    {showDescriptionBelowCart && (
                         <div className="prose prose-sm text-gray-500 mb-10 border-t border-gray-100 pt-8">
                             <div dangerouslySetInnerHTML={{ __html: product.description }} />
                         </div>
@@ -272,6 +387,17 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
                         ))}
                     </div>
                 </div>
+            )}
+            </div>
+
+            {!footer.hidden && (
+                <Footer
+                    settings={footer.settings}
+                    blocks={footer.blocks.filter((b) => !b.hidden)}
+                    socialMedia={socialMedia}
+                    footerLogoUrl={logoSettings.footer_logo_url}
+                    footerLogoWidth={logoSettings.footer_logo_width}
+                />
             )}
 
             <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} storeId={shop.shopId} shopName={shop.shopName} platformName="Fype" />

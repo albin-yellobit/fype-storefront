@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import Header from "./Header";
+import Footer from "./sections/Footer";
 import ProductCard from "./ProductCard";
 import ProductFilters from "./ProductFilters";
 import { mergeSparkConfig, type SparkConfig, type SparkConfigOverride } from "./sparkConfig";
@@ -79,6 +80,18 @@ export default function SparkShop({ initialConfig, shop, navItems, products, pag
     const [hoveringLayout, setHoveringLayout] = useState(false);
 
     const settings = liveConfig.page_settings.shop;
+    // Header/Footer are global across every Spark page, not Home-only — same
+    // liveConfig.sections.header/footer + theme_settings.social_media/logo
+    // resolution as SparkHome.tsx, just without Home's per-block click-to-
+    // select editing wiring (Header/Footer aren't independently editable
+    // outside Home; Shop only has its own single "Shop Layout" panel).
+    const { header, announcement_bar: announcementBar, footer } = liveConfig.sections;
+    const { logo: logoSettings, social_media: socialMedia } = liveConfig.theme_settings;
+    const visibleAnnouncementBlocks = announcementBar.settings.show ? announcementBar.settings.blocks.filter((b) => !b.hidden) : [];
+    // Same fallback as SparkHome.tsx: an un-configured store (no real
+    // navigation Pages yet) still shows a populated nav bar, using the
+    // theme's own default label list rather than an empty menu.
+    const navigation = navItems.length > 0 ? navItems : header.settings.navigation.map((label) => ({ label, href: "/products" }));
     const globalTax = shop.settings?.tax;
     const page = searchParams.page ? Number(searchParams.page) : 1;
     const gridClass = PRODUCTS_PER_ROW_CLASSES[settings.products_per_row];
@@ -107,11 +120,13 @@ export default function SparkShop({ initialConfig, shop, navItems, products, pag
 
     return (
         <div className="bg-white text-black min-h-screen">
-            <Header
-                header={{ ...liveConfig.sections.header.settings, logo_text: shop.shopName }}
-                navItems={navItems}
-                announcementBlocks={[]}
-            />
+            {!header.hidden && (
+                <Header
+                    header={{ ...header.settings, logo_text: shop.shopName }}
+                    navItems={navigation}
+                    announcementBlocks={visibleAnnouncementBlocks}
+                />
+            )}
 
             <div
                 className="relative"
@@ -198,6 +213,16 @@ export default function SparkShop({ initialConfig, shop, navItems, products, pag
                 )}
             </div>
             </div>
+
+            {!footer.hidden && (
+                <Footer
+                    settings={footer.settings}
+                    blocks={footer.blocks.filter((b) => !b.hidden)}
+                    socialMedia={socialMedia}
+                    footerLogoUrl={logoSettings.footer_logo_url}
+                    footerLogoWidth={logoSettings.footer_logo_width}
+                />
+            )}
         </div>
     );
 }

@@ -5,11 +5,20 @@ import { useEffect, useState } from "react";
 interface SparkProductGalleryProps {
     images: string[];
     productName: string;
+    // Product Detail page setting — three variants ported from the
+    // reference's ProductPage.tsx:94-213. Unlike the reference, the
+    // thumbnail strip here (both orientations) is a plain scrollable list,
+    // not its ResizeObserver-driven "+N" overflow indicator — that's a
+    // polish detail on top of the core 3-layout feature being ported, and
+    // this component's thumbnail-below mode already shipped as a simple
+    // scrollable strip before image_layout existed; kept consistent rather
+    // than adding real/refs/observer complexity for a cosmetic difference.
+    imageLayout?: "Main + Thumbnails Below" | "Main + Thumbnails Side" | "Single Image";
 }
 
 const FALLBACK_IMAGE = "/placeholder-product.png";
 
-export default function ProductGallery({ images, productName }: SparkProductGalleryProps) {
+export default function ProductGallery({ images, productName, imageLayout = "Main + Thumbnails Below" }: SparkProductGalleryProps) {
     const gallery = images.length > 0 ? images : [FALLBACK_IMAGE];
     const [current, setCurrent] = useState(0);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -37,32 +46,55 @@ export default function ProductGallery({ images, productName }: SparkProductGall
         };
     }, [isLightboxOpen, gallery.length]);
 
+    const isSideLayout = imageLayout === "Main + Thumbnails Side";
+    const showThumbnails = imageLayout !== "Single Image" && gallery.length > 1;
+
+    const mainImage = (
+        <button
+            type="button"
+            onClick={() => setIsLightboxOpen(true)}
+            className="aspect-square bg-gray-50 border border-gray-100 rounded-2xl overflow-hidden relative isolate block w-full"
+        >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={gallery[current]} alt={productName} className="w-full h-full object-cover" />
+        </button>
+    );
+
+    const thumbnails = showThumbnails && (
+        <div
+            className={
+                isSideLayout
+                    ? "w-20 shrink-0 flex flex-col gap-3 overflow-y-auto max-h-150 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                    : "flex gap-4 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            }
+        >
+            {gallery.map((img, idx) => (
+                <button
+                    key={img + idx}
+                    onClick={() => setCurrent(idx)}
+                    className={`w-20 aspect-square shrink-0 rounded-lg overflow-hidden border-2 transition-colors ${
+                        current === idx ? "border-black" : "border-transparent"
+                    }`}
+                >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={img} alt={`${productName} ${idx + 1}`} className="w-full h-full object-cover" />
+                </button>
+            ))}
+        </div>
+    );
+
     return (
         <div className="w-full md:w-1/2 flex flex-col gap-4">
-            <button
-                type="button"
-                onClick={() => setIsLightboxOpen(true)}
-                className="aspect-square bg-gray-50 border border-gray-100 rounded-2xl overflow-hidden relative isolate block w-full"
-            >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={gallery[current]} alt={productName} className="w-full h-full object-cover" />
-            </button>
-
-            {gallery.length > 1 && (
-                <div className="flex gap-4 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                    {gallery.map((img, idx) => (
-                        <button
-                            key={img + idx}
-                            onClick={() => setCurrent(idx)}
-                            className={`w-20 aspect-square shrink-0 rounded-lg overflow-hidden border-2 transition-colors ${
-                                current === idx ? "border-black" : "border-transparent"
-                            }`}
-                        >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={img} alt={`${productName} ${idx + 1}`} className="w-full h-full object-cover" />
-                        </button>
-                    ))}
+            {isSideLayout ? (
+                <div className="flex gap-4 items-start">
+                    {thumbnails}
+                    <div className="flex-1">{mainImage}</div>
                 </div>
+            ) : (
+                <>
+                    {mainImage}
+                    {thumbnails}
+                </>
             )}
 
             {isLightboxOpen && (

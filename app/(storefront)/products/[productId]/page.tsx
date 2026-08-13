@@ -12,6 +12,31 @@ import ShopNotFound from "@/components/shared/ShopNotFound";
 
 interface ProductDetailsPageProps {
     params: Promise<{ productId: string }>;
+    searchParams: Promise<{ editorPreview?: string }>;
+}
+
+const PLACEHOLDER_PRODUCT_IMAGE =
+    "https://i0.wp.com/mikeyarce.com/wp-content/uploads/2021/09/woocommerce-placeholder.png?ssl=1";
+
+// Same isEditorPreview-gated placeholder convention as the Collection Page
+// route — a store with zero real products couldn't preview/customize the
+// Product Detail page at all otherwise (getProductDetails returns null,
+// today's `product ? ... : "Product not found"` branch has no layout to
+// design against). Never constructed for real customer traffic.
+function placeholderProductDetail() {
+    return {
+        productId: "placeholder-product",
+        name: "Sample Product",
+        description: "",
+        images: [PLACEHOLDER_PRODUCT_IMAGE],
+        hasVariants: false,
+        continueSellWhenOutOfStock: false,
+        skuCode: "",
+        barCode: "",
+        price: { price: 0, compareAtPrice: 0, taxApplied: false, taxRate: undefined },
+        display: {},
+        inventory: { available: 0, continueSelling: false },
+    };
 }
 
 async function getSharedShopData() {
@@ -42,14 +67,27 @@ export async function generateMetadata({ params }: ProductDetailsPageProps): Pro
     return { title: product ? `${product.name} - ${storeName}` : `Product Details - ${storeName}` };
 }
 
-export default async function ProductDetailsPage({ params }: ProductDetailsPageProps) {
+export default async function ProductDetailsPage({ params, searchParams }: ProductDetailsPageProps) {
     const { productId } = await params;
+    const { editorPreview } = await searchParams;
     const data = await getSharedShopData();
 
     if (!data || !data.theme) return <ShopNotFound />;
 
     const { apiBaseUrl, shop, theme, navPages, footerPages } = data;
-    const { product, variants, variantOptions, relatedProducts } = await getProductDetails(apiBaseUrl, shop.shopId, productId);
+    const fetched = await getProductDetails(apiBaseUrl, shop.shopId, productId);
+
+    // Real customer traffic sees "Product not found" exactly as before
+    // (handled inside ThemeProductDetailsPage/ProductDetailsView below) when
+    // productId doesn't resolve. The editor iframe instead gets a
+    // synthesized placeholder so a store with zero real products can still
+    // customize the Product Detail page's layout — same convention as the
+    // Collection Page route's placeholder fallback.
+    const usePlaceholder = !fetched.product && editorPreview === "1";
+    const product = usePlaceholder ? placeholderProductDetail() : fetched.product;
+    const variants = usePlaceholder ? [] : fetched.variants;
+    const variantOptions = usePlaceholder ? null : fetched.variantOptions;
+    const relatedProducts = usePlaceholder ? [] : fetched.relatedProducts;
 
     const themeSlug = resolveThemeSlug(theme.templateId);
     const themeModule = await loadTheme(themeSlug);
@@ -68,6 +106,7 @@ export default async function ProductDetailsPage({ params }: ProductDetailsPageP
                 variants={variants}
                 variantOptions={variantOptions}
                 relatedProducts={relatedProducts}
+                themeConfig={theme.themeConfig}
             />
         );
     }

@@ -2,11 +2,7 @@ import type { ProductsPageProps } from "@/components/themes/registry";
 import SparkShop from "./SparkShop";
 import { mergeSparkConfig, sparkDefaultConfig } from "./sparkConfig";
 
-// Spark's self-contained Products (PLP) page. No Spark Footer yet (same
-// deferral as HomePage.tsx — see MIGRATION_RUNBOOK.md), so this ends after
-// the product grid rather than awkwardly borrowing theme_one's Footer,
-// which expects theme_one's ThemeCustomization shape (navbar/footer/
-// footerText) that these self-contained pages don't carry.
+// Spark's self-contained Products (PLP) page.
 //
 // Thin Server shell — resolves the real themeConfig into a full SparkConfig
 // and delegates all rendering + live-editing to SparkShop, a Client
