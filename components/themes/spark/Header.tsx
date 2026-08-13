@@ -69,6 +69,7 @@ export default function Header({
     const containerTextColor = isScroll ? "inherit" : activeBlockSettings?.text_color || "#ffffff";
 
     const {
+        logo_type: logoType,
         logo_text: logoText,
         logo_position: logoPosition,
         menu_style: menuStyle,
@@ -87,12 +88,13 @@ export default function Header({
 
     const logoContent = (
         <Link href="/" className="flex items-center gap-3">
-            {logoUrl ? (
+            {(logoType === "Logo Image" || logoType === "Text + Logo Image") && logoUrl && (
                 <span className="flex items-center shrink-0 overflow-hidden" style={{ width: `${logoWidth}px` }}>
                     {/* eslint-disable-next-line @next/next/no-img-element -- store-uploaded logo, arbitrary remote origin not worth a next/image remotePatterns entry */}
                     <img src={logoUrl} className="w-full h-auto max-h-12 object-contain" alt={logoText || "Logo"} />
                 </span>
-            ) : (
+            )}
+            {(logoType === "Text Only" || logoType === "Text + Logo Image") && (
                 <span className="font-black tracking-tighter text-2xl hover:opacity-80 transition-opacity">{logoText}</span>
             )}
         </Link>
