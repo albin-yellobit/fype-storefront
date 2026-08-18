@@ -403,7 +403,16 @@ export default function SparkHome({
     };
 
     return (
-        <div className="bg-white text-black" style={rootStyle}>
+        <div
+            className="bg-white text-black"
+            style={rootStyle}
+            onClick={(e) => {
+                if (!isEditorPreview || e.target !== e.currentTarget) return;
+                setActiveSection(null);
+                setActiveBlock(null);
+                window.parent.postMessage({ type: SPARK_SECTION_CLICKED, section: null }, "*");
+            }}
+        >
             {!header.hidden && (
                 <div
                     id="spark-section-header"
