@@ -74,6 +74,7 @@ export default function Footer({
         const isActive = activeBlockId === id;
         return (
             <div
+                id={`spark-block-${id}`}
                 className={`relative group/block cursor-pointer transition-all ${className} ${
                     isActive ? "ring-2 ring-blue-500 rounded p-2 -m-2 z-20" : "hover:ring-1 hover:ring-blue-400 rounded p-2 -m-2 z-20"
                 }`}

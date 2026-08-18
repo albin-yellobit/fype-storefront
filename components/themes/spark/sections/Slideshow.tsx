@@ -51,6 +51,7 @@ export default function Slideshow({ settings, slides, isEditorPreview = false, a
             className={isSleek ? "px-6 max-w-7xl mx-auto relative" : "relative"}
         >
             <div
+                id={`spark-block-${slide.id}`}
                 className={`${
                     isSleek
                         ? "w-full relative rounded-2xl overflow-hidden aspect-[16/9] md:aspect-[21/9] shadow-sm bg-gray-100"

@@ -48,6 +48,7 @@ export default function ImageWithText({ settings, blocks, isEditorPreview = fals
         const isActive = activeBlockId === id;
         return (
             <div
+                id={`spark-block-${id}`}
                 className={`relative w-full group/block cursor-pointer ${isActive ? "ring-2 ring-blue-500 rounded-sm" : "hover:ring-2 hover:ring-blue-400 rounded-sm"}`}
                 onClick={(e) => {
                     e.stopPropagation();
@@ -104,6 +105,7 @@ export default function ImageWithText({ settings, blocks, isEditorPreview = fals
                         // already uses for its own absolutely-positioned
                         // image, instead of wrapping it.
                         <div
+                            id={`spark-block-${imageBlock.id}`}
                             className={`w-full relative rounded-2xl overflow-hidden ${imagePos === "Right" ? "md:order-2" : ""} ${isEditorPreview ? "cursor-pointer" : ""}`}
                             style={{ aspectRatio: imageAspectRatio }}
                             onClick={

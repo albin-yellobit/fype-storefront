@@ -88,10 +88,6 @@ export default function SparkShop({ initialConfig, shop, navItems, products, pag
     const { header, announcement_bar: announcementBar, footer } = liveConfig.sections;
     const { logo: logoSettings, social_media: socialMedia } = liveConfig.theme_settings;
     const visibleAnnouncementBlocks = announcementBar.settings.show ? announcementBar.settings.blocks.filter((b) => !b.hidden) : [];
-    // Same fallback as SparkHome.tsx: an un-configured store (no real
-    // navigation Pages yet) still shows a populated nav bar, using the
-    // theme's own default label list rather than an empty menu.
-    const navigation = navItems.length > 0 ? navItems : header.settings.navigation.map((label) => ({ label, href: "/products" }));
     const globalTax = shop.settings?.tax;
     const page = searchParams.page ? Number(searchParams.page) : 1;
     const gridClass = PRODUCTS_PER_ROW_CLASSES[settings.products_per_row];
@@ -123,7 +119,7 @@ export default function SparkShop({ initialConfig, shop, navItems, products, pag
             {!header.hidden && (
                 <Header
                     header={{ ...header.settings, logo_text: shop.shopName }}
-                    navItems={navigation}
+                    navItems={navItems}
                     announcementBlocks={visibleAnnouncementBlocks}
                     logoUrl={logoSettings.logo_url}
                     logoWidth={logoSettings.logo_width}

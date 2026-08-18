@@ -174,8 +174,19 @@ export default function SparkHome({
     }, []);
 
     const { header, announcement_bar: announcementBar, body, footer } = liveConfig.sections;
+
+    // Glass Effect + Sticky Header together on the home page's header mean
+    // it floats fully transparent over the hero (first body section)
+    // instead of taking up its own space above it, becoming a solid frosted
+    // bar once scrolled — matches Fype-E-Commerce-UI's SparkTheme.tsx demo,
+    // which only ever does this on the home/about pages. Both settings are
+    // required: Sticky Header off means the merchant wants the header to
+    // scroll away normally, not float. Position: fixed (applied to the
+    // header's own section wrapper below) takes it out of flow entirely, so
+    // no negative-margin/measured-height compensation is needed — the hero
+    // just naturally renders starting at the top of the page.
+    const heroOverlap = !header.hidden && header.settings.glass_effect === true && header.settings.sticky_header === true;
     const { colors: colorSchemeSettings, logo: logoSettings, social_media: socialMedia } = liveConfig.theme_settings;
-    const navigation = navItems.length > 0 ? navItems : header.settings.navigation.map((label) => ({ label, href: "/products" }));
 
     // Matches the reference exactly: only background/backgroundGradient/text
     // of the active scheme are applied, as an inline style on the page root
@@ -192,15 +203,82 @@ export default function SparkHome({
           }
         : undefined;
 
+    const getResolvedNavItems = () => {
+        if (!header.settings.navigation || header.settings.navigation.length === 0) {
+            return navItems;
+        }
+
+        const pagesConfig = liveConfig.theme_settings.pages as any;
+        const seen = new Set<string>();
+
+        return header.settings.navigation.reduce((acc, item) => {
+            const lowerItem = item.toLowerCase();
+
+            // Deduplicate to avoid React key warnings and visual repetition
+            if (seen.has(lowerItem)) return acc;
+            seen.add(lowerItem);
+
+            if (lowerItem === "home") {
+                acc.push({ label: pagesConfig?.home_navbar_label || "Home", href: "/" });
+                return acc;
+            }
+            if (lowerItem === "shop") {
+                acc.push({ label: pagesConfig?.shop_navbar_label || "Shop", href: "/products" });
+                return acc;
+            }
+            if (lowerItem === "collections") {
+                acc.push({ label: pagesConfig?.collections_navbar_label || "Collections", href: "/collections" });
+                return acc;
+            }
+            if (lowerItem.startsWith("page:")) {
+                const parts = item.split("|");
+                const slug = parts[0].slice(5);
+                const title = parts.length > 1 ? parts.slice(1).join("|") : slug;
+
+                const serverItem = navItems.find((n) => n.href === `/${slug}`);
+                if (serverItem) {
+                    acc.push({ label: title || serverItem.label, href: serverItem.href });
+                    return acc;
+                }
+
+                acc.push({ label: title, href: `/${slug}` });
+                return acc;
+            }
+
+            acc.push({ label: item, href: `/${item.toLowerCase().replace(/\\s+/g, "-")}` });
+            return acc;
+        }, [] as Array<{ label: string; href: string }>);
+    };
+
+    const resolvedNavItems = getResolvedNavItems();
+
     const selectSection = (sectionId: string) => {
         setActiveSection(sectionId);
+        setActiveBlock(null);
         window.parent.postMessage({ type: SPARK_SECTION_CLICKED, section: sectionId }, "*");
     };
 
     const selectBlock = (block: SparkActiveBlock) => {
+        setActiveSection(block.sectionId);
         setActiveBlock(block);
         window.parent.postMessage({ type: SPARK_BLOCK_CLICKED, block }, "*");
     };
+
+    useEffect(() => {
+        if (!isEditorPreview) return;
+
+        const targetId = activeBlock ? `spark-block-${activeBlock.id}` : activeSection ? `spark-section-${activeSection}` : null;
+        if (!targetId) return;
+
+        const target = document.getElementById(targetId) ?? (activeBlock?.sectionId ? document.getElementById(`spark-section-${activeBlock.sectionId}`) : null);
+        if (!target) return;
+
+        const frame = window.requestAnimationFrame(() => {
+            target.scrollIntoView({ behavior: "smooth", block: "center" });
+        });
+
+        return () => window.cancelAnimationFrame(frame);
+    }, [activeBlock, activeSection, isEditorPreview]);
 
     // Selecting a section in the editor must never actually follow the
     // real nav/search/account/cart links inside Header — preventDefault in
@@ -327,30 +405,39 @@ export default function SparkHome({
     return (
         <div className="bg-white text-black" style={rootStyle}>
             {!header.hidden && (
-                <div {...sectionProps("header")}>
+                <div
+                    id="spark-section-header"
+                    {...sectionProps("header")}
+                    // heroOverlap takes this cluster out of normal flow
+                    // entirely (position: fixed) so it floats over the hero
+                    // instead of pushing it down — overrides sectionProps'
+                    // own "relative" with "fixed", not additive with it.
+                    className={heroOverlap ? `fixed inset-x-0 top-0 z-40${isEditorPreview ? " group cursor-pointer" : ""}` : sectionProps("header").className}
+                >
                     <SectionOutline label="Header" active={activeSection === "header"} isEditorPreview={isEditorPreview} />
                     <Header
                         header={header.settings}
-                        navItems={navigation}
+                        navItems={resolvedNavItems}
                         announcementBlocks={visibleAnnouncementBlocks}
                         logoUrl={logoSettings.logo_url}
                         logoWidth={logoSettings.logo_width}
                         isEditorPreview={isEditorPreview}
                         activeAnnouncementId={activeBlock?.sectionId === "header" ? activeBlock.id : null}
                         onAnnouncementClick={(id) => selectBlock({ sectionId: "header", kind: "announcement", id })}
+                        heroOverlap={heroOverlap}
                     />
                 </div>
             )}
             {body.map((section) =>
                 section.hidden ? null : (
-                    <div key={section.id} {...sectionProps(section.id)}>
+                    <div id={`spark-section-${section.id}`} key={section.id} {...sectionProps(section.id)}>
                         <SectionOutline label={BODY_SECTION_LABELS[section.type]} active={activeSection === section.id} isEditorPreview={isEditorPreview} />
                         {renderBodySection(section)}
                     </div>
                 )
             )}
             {!footer.hidden && (
-                <div {...sectionProps("footer")}>
+                <div id="spark-section-footer" {...sectionProps("footer")}>
                     <SectionOutline label="Footer" active={activeSection === "footer"} isEditorPreview={isEditorPreview} />
                     <Footer
                         settings={footer.settings}

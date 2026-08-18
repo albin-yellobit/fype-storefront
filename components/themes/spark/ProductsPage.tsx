@@ -1,6 +1,6 @@
 import type { ProductsPageProps } from "@/components/themes/registry";
 import SparkShop from "./SparkShop";
-import { mergeSparkConfig, sparkDefaultConfig } from "./sparkConfig";
+import { buildSparkNavItems, mergeSparkConfig, sparkDefaultConfig } from "./sparkConfig";
 
 // Spark's self-contained Products (PLP) page.
 //
@@ -12,9 +12,7 @@ import { mergeSparkConfig, sparkDefaultConfig } from "./sparkConfig";
 // design reference's Shop.tsx, which has no category filter UI at all.
 export default function ProductsPage({ shop, navPages, products, pagination, searchParams, themeConfig }: ProductsPageProps) {
     const config = mergeSparkConfig(sparkDefaultConfig, themeConfig);
-    const navItems = navPages
-        .filter((p) => p.isActive && p.status === "visible" && p.pageType === "generic")
-        .map((p) => ({ label: p.title, href: `/${p.slug}` }));
+    const navItems = buildSparkNavItems(navPages);
 
     return (
         <SparkShop

@@ -1,6 +1,6 @@
 import type { CollectionPageProps } from "@/components/themes/registry";
 import SparkCollectionPage from "./SparkCollectionPage";
-import { mergeSparkConfig, sparkDefaultConfig } from "./sparkConfig";
+import { buildSparkNavItems, mergeSparkConfig, sparkDefaultConfig } from "./sparkConfig";
 
 // Spark's self-contained single-Collection listing page — new with Collection
 // List's real /collections/[slug] links (the reference has no equivalent
@@ -11,9 +11,7 @@ import { mergeSparkConfig, sparkDefaultConfig } from "./sparkConfig";
 // Client Component, same split ProductsPage.tsx/SparkShop.tsx already uses.
 export default function CollectionPage({ shop, navPages, collection, products, themeConfig }: CollectionPageProps) {
     const config = mergeSparkConfig(sparkDefaultConfig, themeConfig);
-    const navItems = navPages
-        .filter((p) => p.isActive && p.status === "visible" && p.pageType === "generic")
-        .map((p) => ({ label: p.title, href: `/${p.slug}` }));
+    const navItems = buildSparkNavItems(navPages);
 
     const globalTax = shop.settings?.tax;
 

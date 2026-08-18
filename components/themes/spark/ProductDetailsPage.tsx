@@ -6,7 +6,7 @@ import type { ProductDetailsPageProps } from "@/components/themes/registry";
 import Header from "./Header";
 import Footer from "./sections/Footer";
 import ProductGallery from "./ProductGallery";
-import { mergeSparkConfig, sparkDefaultConfig, type SparkConfigOverride } from "./sparkConfig";
+import { buildSparkNavItems, mergeSparkConfig, sparkDefaultConfig, type SparkConfigOverride } from "./sparkConfig";
 import { SPARK_DRAFT_READY, SPARK_DRAFT_UPDATE, SPARK_SECTION_CLICKED, SPARK_SET_ACTIVE_SECTION } from "./SparkHome";
 import AuthModal from "@/components/shared/AuthModal";
 import { calculateProductTax } from "@/utils/taxCalculator";
@@ -130,13 +130,7 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
         setCartMessage(null);
     }
 
-    const navItems = navPages
-        .filter((p) => p.isActive && p.status === "visible" && p.pageType === "generic")
-        .map((p) => ({ label: p.title, href: `/${p.slug}` }));
-    // Same fallback as SparkHome.tsx: an un-configured store (no real
-    // navigation Pages yet) still shows a populated nav bar, using the
-    // theme's own default label list rather than an empty menu.
-    const navigation = navItems.length > 0 ? navItems : header.settings.navigation.map((label) => ({ label, href: "/products" }));
+    const navigation = buildSparkNavItems(navPages);
 
     if (!product) {
         return (

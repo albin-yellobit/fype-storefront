@@ -77,11 +77,12 @@ export default function BannerSlider({ settings, slides, isEditorPreview = false
     if (s.heading_size === "Small") headingSizeClass = "text-4xl md:text-5xl";
     if (s.heading_size === "Large") headingSizeClass = "text-6xl md:text-[6rem]";
 
-    return (
-        <div
-            className={`relative w-full overflow-hidden ${heightClass} ${isEditorPreview ? "group/block" : ""}`}
-            style={{
-                backgroundColor: settings.background_color,
+        return (
+            <div
+                id={`spark-block-${slide.id}`}
+                className={`relative w-full overflow-hidden ${heightClass} ${isEditorPreview ? "group/block" : ""}`}
+                style={{
+                    backgroundColor: settings.background_color,
                 paddingTop: settings.padding_top,
                 paddingBottom: settings.padding_bottom,
             }}

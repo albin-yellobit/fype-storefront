@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import type { SparkAnnouncementBarBlock, SparkHeaderSettings } from "./sparkConfig";
@@ -20,9 +20,27 @@ interface SparkHeaderProps {
     isEditorPreview?: boolean;
     activeAnnouncementId?: string | null;
     onAnnouncementClick?: (id: string) => void;
+    // Only passed by the home page (matches Fype-E-Commerce-UI's
+    // SparkTheme.tsx demo, which gates this to home/about): the parent has
+    // already taken this cluster (announcement bar + header) out of normal
+    // flow via `position: fixed` so it floats over the hero, and just wants
+    // this component to switch between fully-transparent and frosted-glass
+    // based on scroll position.
+    heroOverlap?: boolean;
 }
 
 const REPEAT_COUNT = 10;
+
+// Converts a "#rrggbb" hex color to an rgba() string at the given alpha —
+// needed because the header's background is set via inline style, so
+// Tailwind's bg-opacity-* utility (which only works on colors defined
+// through Tailwind's own utility classes) silently does nothing to it.
+function hexToRgba(hex: string, alpha: number): string {
+    const match = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (!match) return hex;
+    const [, r, g, b] = match;
+    return `rgba(${parseInt(r, 16)}, ${parseInt(g, 16)}, ${parseInt(b, 16)}, ${alpha})`;
+}
 
 // Full port of Fype-E-Commerce-UI's sections/Header.tsx (read-only design
 // reference) — every section setting (Logo Type/Position, Menu Style,
@@ -40,9 +58,19 @@ export default function Header({
     isEditorPreview = false,
     activeAnnouncementId = null,
     onAnnouncementClick,
+    heroOverlap = false,
 }: SparkHeaderProps) {
     const [currentAnnouncement, setCurrentAnnouncement] = useState(0);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [isScrolled, setIsScrolled] = useState(false);
+
+    useEffect(() => {
+        if (!heroOverlap) return;
+        const onScroll = () => setIsScrolled(window.scrollY > 40);
+        onScroll();
+        window.addEventListener("scroll", onScroll, { passive: true });
+        return () => window.removeEventListener("scroll", onScroll);
+    }, [heroOverlap]);
 
     const numBlocks = announcementBlocks.length;
     // Blocks can be added/removed/reordered by the editor while this is
@@ -79,12 +107,31 @@ export default function Header({
         foreground_color: fgColor,
     } = header;
 
-    const headerClass = `z-40 transition-colors duration-300 border-b ${isSticky ? "sticky top-0" : ""} ${glassEffect ? "backdrop-blur-md bg-opacity-90" : ""}`;
-    const headerStyle = {
-        backgroundColor: bgColor,
-        color: fgColor,
-        borderColor: fgColor === "#ffffff" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
-    };
+    // Only the home page opts into overlapping the hero (heroOverlap), and
+    // only makes sense combined with both settings that make the effect
+    // legible: Sticky Header (so it stays put as you scroll past the hero
+    // instead of vanishing) and Glass Effect itself. The parent already
+    // applies `position: fixed` to the whole cluster when this is active, so
+    // the header itself only needs its own sticky class in the normal
+    // (non-overlap) case.
+    const overlapActive = heroOverlap && glassEffect && isSticky;
+    const isTransparent = overlapActive && !isScrolled;
+
+    const headerClass = `z-40 transition-all duration-300 border-b ${!overlapActive && isSticky ? "sticky top-0" : ""}`;
+    const headerStyle: CSSProperties = isTransparent
+        ? { backgroundColor: "transparent", color: "#ffffff", borderColor: "rgba(255,255,255,0.15)" }
+        : {
+              // Glass Effect means the header is fully transparent over the
+              // hero (handled above) and, once scrolled, a frosted glass bar
+              // rather than a flat opaque one — bg-opacity-90 can't do this
+              // via Tailwind since backgroundColor is set inline, so blend
+              // the alpha into the color itself and pair it with a real blur.
+              backgroundColor: glassEffect ? hexToRgba(bgColor, 0.85) : bgColor,
+              color: fgColor,
+              borderColor: fgColor === "#ffffff" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+              backdropFilter: glassEffect ? "blur(12px)" : undefined,
+              WebkitBackdropFilter: glassEffect ? "blur(12px)" : undefined,
+          };
 
     const logoContent = (
         <Link href="/" className="flex items-center gap-3">
@@ -145,6 +192,7 @@ export default function Header({
         const isActive = activeAnnouncementId === block.id;
         return (
             <div
+                id={`spark-block-${block.id}`}
                 className={`relative group/block cursor-pointer rounded-sm ${isActive ? "ring-2 ring-blue-500" : "hover:ring-2 hover:ring-blue-400"}`}
                 onClick={(e) => {
                     e.stopPropagation();

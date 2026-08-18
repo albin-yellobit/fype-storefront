@@ -91,6 +91,7 @@ export default function CollapsibleContent({ settings, items, isEditorPreview = 
 
                     return (
                         <div
+                            id={`spark-block-${item.id}`}
                             key={item.id}
                             className={`relative w-full group/block cursor-pointer ${isActive ? "ring-2 ring-blue-500 rounded-sm" : "hover:ring-2 hover:ring-blue-400 rounded-sm"}`}
                             onClick={(e) => {

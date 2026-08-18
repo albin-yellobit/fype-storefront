@@ -80,6 +80,7 @@ export default function Multicolumn({ settings, blocks, isEditorPreview = false,
 
                         return (
                             <div
+                                id={`spark-block-${block.id}`}
                                 key={block.id}
                                 className={`relative group/block cursor-pointer rounded-md ${isActive ? "ring-2 ring-blue-500 z-10" : "hover:ring-2 hover:ring-blue-400 z-10"}`}
                                 onClick={(e) => {

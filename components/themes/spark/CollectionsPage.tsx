@@ -1,6 +1,6 @@
 import type { CollectionsPageProps } from "@/components/themes/registry";
 import SparkCollections from "./SparkCollections";
-import { mergeSparkConfig, sparkDefaultConfig } from "./sparkConfig";
+import { buildSparkNavItems, mergeSparkConfig, sparkDefaultConfig } from "./sparkConfig";
 
 // Spark's self-contained Collections (list-all) page — full port of
 // Fype-E-Commerce-UI's spark/Collections.tsx (read-only design reference).
@@ -11,9 +11,7 @@ import { mergeSparkConfig, sparkDefaultConfig } from "./sparkConfig";
 // ProductsPage.tsx/SparkShop.tsx) already use.
 export default function CollectionsPage({ shop, navPages, collections, themeConfig }: CollectionsPageProps) {
     const config = mergeSparkConfig(sparkDefaultConfig, themeConfig);
-    const navItems = navPages
-        .filter((p) => p.isActive && p.status === "visible" && p.pageType === "generic")
-        .map((p) => ({ label: p.title, href: `/${p.slug}` }));
+    const navItems = buildSparkNavItems(navPages);
 
     return <SparkCollections initialConfig={config} shop={shop} navItems={navItems} collections={collections} />;
 }

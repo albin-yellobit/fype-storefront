@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CartPageProps } from "@/components/themes/registry";
 import Header from "./Header";
-import { sparkDefaultConfig } from "./sparkConfig";
+import { buildSparkNavItems, sparkDefaultConfig } from "./sparkConfig";
 import AuthModal from "@/components/shared/AuthModal";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { updateCartItem, removeFromCart, updateGuestCartItem, removeFromGuestCart, addToWishlist, type CartItem } from "@/redux/slices/userSlice";
@@ -19,9 +19,7 @@ export default function CartPage({ shop, navPages, bestSellerProducts }: CartPag
     const { cart, isAuthenticated } = useAppSelector((state) => state.user);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-    const navItems = navPages
-        .filter((p) => p.isActive && p.status === "visible" && p.pageType === "generic")
-        .map((p) => ({ label: p.title, href: `/${p.slug}` }));
+    const navItems = buildSparkNavItems(navPages);
 
     const handleQuantityChange = (item: CartItem, newQuantity: number) => {
         if (newQuantity < 1) return;

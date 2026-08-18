@@ -1,6 +1,6 @@
 import type { HomePageProps } from "@/components/themes/registry";
 import SparkHome from "./SparkHome";
-import { mergeSparkConfig, sparkDefaultConfig } from "./sparkConfig";
+import { buildSparkNavItems, mergeSparkConfig, sparkDefaultConfig } from "./sparkConfig";
 import { getApiBaseUrl, getCollectionProducts, getProductDetails, getCollectionsByIds } from "@/lib/storefront-api";
 
 // Spark's self-contained Home page — reads the store's real saved
@@ -28,9 +28,7 @@ export default async function HomePage({ shop, navPages, themeConfig }: HomePage
     });
     const config = mergeSparkConfig(shopSeededConfig, themeConfig);
 
-    const navItems = navPages
-        .filter((p) => p.isActive && p.status === "visible" && p.pageType === "generic")
-        .map((p) => ({ label: p.title, href: `/${p.slug}` }));
+    const navItems = buildSparkNavItems(navPages);
 
     // Fetched here (not in app/(storefront)/page.tsx alongside newIn/best-
     // sellers) because which collections/products to fetch is only known

@@ -8,7 +8,7 @@
 // this theme's placeholder/preview content until per-store persistence of a
 // merchant's own edited config exists (deferred — see runbook).
 
-import type { ProductSortBy } from "@/types/storefront";
+import type { Page, ProductSortBy } from "@/types/storefront";
 
 export interface SparkAnnouncementBarBlockSettings {
     text: string;
@@ -697,6 +697,23 @@ export function mergeSparkConfig(base: SparkConfig, override?: SparkConfigOverri
             product: { ...base.page_settings.product, ...(o.page_settings?.product ?? {}) },
         },
     };
+}
+
+// Every Spark page builds its header nav the same way: the two fixed,
+// always-real storefront routes first, then whatever generic pages the
+// merchant has created — so the bar is never empty on a fresh store and
+// never loses Shop/Collections once a custom page exists (the old
+// per-page `header.settings.navigation` fallback showed placeholder
+// labels like "About"/"Blog" all pointing at /products, and disappeared
+// completely as soon as navPages was non-empty).
+export function buildSparkNavItems(navPages: Page[]): Array<{ label: string; href: string }> {
+    return [
+        { label: "Shop", href: "/products" },
+        { label: "Collections", href: "/collections" },
+        ...navPages
+            .filter((p) => p.isActive && p.status === "visible" && p.pageType === "generic")
+            .map((p) => ({ label: p.title, href: `/${p.slug}` })),
+    ];
 }
 
 export const sparkDefaultConfig: SparkConfig = {

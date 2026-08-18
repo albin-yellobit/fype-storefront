@@ -28,6 +28,7 @@ export default function RichText({ settings, blocks, isEditorPreview = false, ac
         const isActive = activeBlockId === id;
         return (
             <div
+                id={`spark-block-${id}`}
                 className={`relative w-full group/block cursor-pointer ${isActive ? "ring-2 ring-blue-500 rounded-sm" : "hover:ring-2 hover:ring-blue-400 rounded-sm"}`}
                 onClick={(e) => {
                     e.stopPropagation();
