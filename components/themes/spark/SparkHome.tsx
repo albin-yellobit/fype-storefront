@@ -421,7 +421,17 @@ export default function SparkHome({
                     // entirely (position: fixed) so it floats over the hero
                     // instead of pushing it down — overrides sectionProps'
                     // own "relative" with "fixed", not additive with it.
-                    className={heroOverlap ? `fixed inset-x-0 top-0 z-40${isEditorPreview ? " group cursor-pointer" : ""}` : sectionProps("header").className}
+                    // When glass is disabled but sticky is still on, the
+                    // outer cluster itself becomes sticky so the header can
+                    // still pin to the viewport while remaining in normal
+                    // flow.
+                    className={
+                        heroOverlap
+                            ? `fixed inset-x-0 top-0 z-40${isEditorPreview ? " group cursor-pointer" : ""}`
+                            : header.settings.sticky_header
+                              ? `sticky top-0 z-40${isEditorPreview ? " group cursor-pointer" : ""}`
+                              : sectionProps("header").className
+                    }
                 >
                     <SectionOutline label="Header" active={activeSection === "header"} isEditorPreview={isEditorPreview} />
                     <Header

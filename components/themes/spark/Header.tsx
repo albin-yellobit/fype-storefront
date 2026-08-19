@@ -126,11 +126,11 @@ export default function Header({
               // rather than a flat opaque one — bg-opacity-90 can't do this
               // via Tailwind since backgroundColor is set inline, so blend
               // the alpha into the color itself and pair it with a real blur.
-              backgroundColor: glassEffect ? hexToRgba(bgColor, 0.85) : bgColor,
+              backgroundColor: glassEffect ? hexToRgba(bgColor, 0.58) : bgColor,
               color: fgColor,
-              borderColor: fgColor === "#ffffff" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
-              backdropFilter: glassEffect ? "blur(12px)" : undefined,
-              WebkitBackdropFilter: glassEffect ? "blur(12px)" : undefined,
+              borderColor: fgColor === "#ffffff" ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.12)",
+              backdropFilter: glassEffect ? "blur(18px) saturate(180%)" : undefined,
+              WebkitBackdropFilter: glassEffect ? "blur(18px) saturate(180%)" : undefined,
           };
 
     const logoContent = (
