@@ -15,6 +15,7 @@ import ContactForm from "./sections/ContactForm";
 import Footer from "./sections/Footer";
 import { mergeSparkConfig, type SparkBodySection, type SparkConfig, type SparkConfigOverride } from "./sparkConfig";
 import type { CollectionSummary, ProductDetail, ProductVariant, ShopIdentity, StorefrontProduct } from "@/types/storefront";
+import SparkHeaderShell from "./SparkHeaderShell";
 
 // Message protocol between ecommerce_app's customization editor (parent
 // frame) and this page (embedded in an iframe). See MIGRATION_RUNBOOK.md
@@ -103,14 +104,12 @@ function SectionOutline({ label, active, isEditorPreview }: { label: string; act
         // its announcement bar z-50, its mobile drawer z-60/z-70) — an
         // editor selection outline must always paint on top of real content.
         <div
-            className={`absolute inset-0 z-100 pointer-events-none transition-colors ${
-                active ? "ring-2 ring-inset ring-blue-500" : "ring-0 group-hover:ring-1 group-hover:ring-inset group-hover:ring-blue-400"
-            }`}
+            className={`absolute inset-0 z-100 pointer-events-none transition-colors ${active ? "ring-2 ring-inset ring-blue-500" : "ring-0 group-hover:ring-1 group-hover:ring-inset group-hover:ring-blue-400"
+                }`}
         >
             <span
-                className={`absolute -top-px left-0 bg-blue-500 text-white text-[11px] font-medium px-2 py-0.5 transition-opacity ${
-                    active ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                }`}
+                className={`absolute -top-px left-0 bg-blue-500 text-white text-[11px] font-medium px-2 py-0.5 transition-opacity ${active ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                    }`}
             >
                 {label}
             </span>
@@ -199,10 +198,10 @@ export default function SparkHome({
         colorSchemeSettings.schemes.find((s) => s.id === colorSchemeSettings.active_scheme_id) ?? colorSchemeSettings.schemes[0];
     const rootStyle = activeScheme
         ? {
-              backgroundColor: activeScheme.background,
-              backgroundImage: activeScheme.background_gradient || undefined,
-              color: activeScheme.text,
-          }
+            backgroundColor: activeScheme.background,
+            backgroundImage: activeScheme.background_gradient || undefined,
+            color: activeScheme.text,
+        }
         : undefined;
 
     const getResolvedNavItems = () => {
@@ -313,12 +312,12 @@ export default function SparkHome({
     const sectionProps = (sectionId: string) =>
         isEditorPreview
             ? {
-                  className: "relative group cursor-pointer",
-                  onClickCapture: (e: React.MouseEvent) => {
-                      e.preventDefault();
-                      selectSection(sectionId);
-                  },
-              }
+                className: "relative group cursor-pointer",
+                onClickCapture: (e: React.MouseEvent) => {
+                    e.preventDefault();
+                    selectSection(sectionId);
+                },
+            }
             : { className: "relative" };
 
     // Merchant-toggled visibility (SparkCustomizeTheme.tsx's sidebar eye
@@ -438,40 +437,16 @@ export default function SparkHome({
                 window.parent.postMessage({ type: SPARK_SECTION_CLICKED, section: null }, "*");
             }}
         >
-            {!header.hidden && (
-                <div
-                    id="spark-section-header"
-                    {...sectionProps("header")}
-                    // heroOverlap takes this cluster out of normal flow
-                    // entirely (position: fixed) so it floats over the hero
-                    // instead of pushing it down — overrides sectionProps'
-                    // own "relative" with "fixed", not additive with it.
-                    // When glass is disabled but sticky is still on, the
-                    // outer cluster itself becomes sticky so the header can
-                    // still pin to the viewport while remaining in normal
-                    // flow.
-                    className={
-                        heroOverlap
-                            ? `fixed inset-x-0 top-0 z-40${isEditorPreview ? " group cursor-pointer" : ""}`
-                            : header.settings.sticky_header
-                              ? `sticky top-0 z-40${isEditorPreview ? " group cursor-pointer" : ""}`
-                              : sectionProps("header").className
-                    }
-                >
-                    <SectionOutline label="Header" active={activeSection === "header"} isEditorPreview={isEditorPreview} />
-                    <Header
-                        header={header.settings}
-                        navItems={resolvedNavItems}
-                        announcementBlocks={visibleAnnouncementBlocks}
-                        logoUrl={logoSettings.logo_url}
-                        logoWidth={logoSettings.logo_width}
-                        isEditorPreview={isEditorPreview}
-                        activeAnnouncementId={activeBlock?.sectionId === "header" ? activeBlock.id : null}
-                        onAnnouncementClick={(id) => selectBlock({ sectionId: "header", kind: "announcement", id })}
-                        heroOverlap={heroOverlap}
-                    />
-                </div>
-            )}
+            <SparkHeaderShell
+                config={liveConfig}
+                navItems={resolvedNavItems}
+                shop={shop}
+                isEditorPreview={isEditorPreview}
+                activeBlockId={activeBlock?.sectionId === "header" ? activeBlock.id : null}
+                onAnnouncementClick={(id) => selectBlock({ sectionId: "header", kind: "announcement", id })}
+                onHeaderClick={() => selectSection("header")}
+                heroOverlap={heroOverlap}
+            />
             {body.map((section) =>
                 section.hidden ? null : (
                     <div id={`spark-section-${section.id}`} key={section.id} {...sectionProps(section.id)}>

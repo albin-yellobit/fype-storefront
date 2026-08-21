@@ -128,6 +128,7 @@ export interface SparkRichTextButtonBlockSettings {
     link: string;
     style: "Outline" | "Filled";
     button_color: string;
+    button_text_color: string;
 }
 
 export type SparkRichTextBlock =

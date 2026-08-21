@@ -106,7 +106,10 @@ export default function FeaturedProduct({ settings, storeId, globalTax, initialP
     const available = displayProduct.inventory?.available ?? 0;
     const inStock = available > 0 || displayProduct.continueSellWhenOutOfStock || !!displayProduct.inventory?.continueSelling;
 
-    const showQuickCart = settings.show_add_to_cart && !isPlaceholder && !isEditorPreview && !displayProduct.hasVariants;
+    // Show the quick-cart UI (quantity + primary button) even in editor
+    // preview so merchants can see layout; guard the actual add-to-cart
+    // action when `isEditorPreview` is true so no real cart requests fire.
+    const showQuickCart = settings.show_add_to_cart && !isPlaceholder && !displayProduct.hasVariants;
     const productHref = `/products/${displayProduct.productId}`;
 
     const handleAddToCart = async () => {
@@ -201,11 +204,15 @@ export default function FeaturedProduct({ settings, storeId, globalTax, initialP
                             </div>
 
                             <button
-                                onClick={handleAddToCart}
-                                disabled={adding || !inStock}
+                                onClick={(e) => {
+                                    if (isEditorPreview) return;
+                                    handleAddToCart();
+                                }}
+                                disabled={isEditorPreview || adding || !inStock}
+                                aria-disabled={isEditorPreview || !inStock}
                                 className="w-full bg-black text-white py-4 px-8 rounded-full font-medium hover:bg-gray-800 transition-colors text-base mb-12 disabled:opacity-50"
                             >
-                                {!inStock ? "Out of Stock" : added ? "Added" : adding ? "Adding…" : "Add to Cart"}
+                                {!inStock ? "Out of Stock" : isEditorPreview ? "Add to Cart" : added ? "Added" : adding ? "Adding…" : "Add to Cart"}
                             </button>
                         </>
                     ) : (
@@ -217,7 +224,12 @@ export default function FeaturedProduct({ settings, storeId, globalTax, initialP
                                 if (isPlaceholder) e.preventDefault();
                             }}
                         >
-                            {displayProduct.hasVariants ? "Select Options" : "View Product"}
+                            {displayProduct.hasVariants
+                                ? "Select Options"
+                                : settings.show_add_to_cart
+                                ? "Add to Cart"
+                                : "View Product"
+                            }
                         </Link>
                     )}
                 </>

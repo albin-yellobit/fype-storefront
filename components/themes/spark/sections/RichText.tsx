@@ -93,7 +93,7 @@ export default function RichText({ settings, blocks, isEditorPreview = false, ac
                         );
                     }
                     // Button
-                    const { label, style, button_color: btnColor, link } = block.settings;
+                    const { label, style, button_color: btnColor, link, button_text_color: btnTextColor } = block.settings;
                     return (
                         <div key={block.id} className="w-full flex justify-center">
                             {wrapBlock(
@@ -104,7 +104,7 @@ export default function RichText({ settings, blocks, isEditorPreview = false, ac
                                     <a
                                         href={link || "#"}
                                         className="px-8 py-3.5 font-medium rounded-full transition-opacity hover:opacity-90 uppercase tracking-widest text-xs inline-block text-white cursor-pointer"
-                                        style={{ backgroundColor: btnColor, color: "#ffffff" }}
+                                        style={{ backgroundColor: btnColor, color: btnTextColor || "#ffffff" }}
                                     >
                                         {label}
                                     </a>

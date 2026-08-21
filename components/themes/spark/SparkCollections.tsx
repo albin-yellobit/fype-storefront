@@ -7,6 +7,8 @@ import Footer from "./sections/Footer";
 import { mergeSparkConfig, type SparkConfig, type SparkConfigOverride } from "./sparkConfig";
 import { SPARK_DRAFT_READY, SPARK_DRAFT_UPDATE, SPARK_SECTION_CLICKED, SPARK_SET_ACTIVE_SECTION } from "./SparkHome";
 import type { CollectionSummary, ShopIdentity } from "@/types/storefront";
+import SparkHeaderShell from "./SparkHeaderShell";
+import { li } from "motion/react-client";
 
 const PLACEHOLDER_IMAGE = "https://i0.wp.com/mikeyarce.com/wp-content/uploads/2021/09/woocommerce-placeholder.png?ssl=1";
 
@@ -62,9 +64,9 @@ export default function SparkCollections({ initialConfig, shop, navItems, collec
 
     // Header/Footer are global across every Spark page, not Home-only — see
     // SparkShop.tsx's identical comment for the full rationale.
-    const { header, announcement_bar: announcementBar, footer } = liveConfig.sections;
+    const { footer } = liveConfig.sections;
     const { logo: logoSettings, social_media: socialMedia } = liveConfig.theme_settings;
-    const visibleAnnouncementBlocks = announcementBar.settings.show ? announcementBar.settings.blocks.filter((b) => !b.hidden) : [];
+    // const visibleAnnouncementBlocks = announcementBar.settings.show ? announcementBar.settings.blocks.filter((b) => !b.hidden) : [];
 
     const selectLayout = () => {
         window.parent.postMessage({ type: SPARK_SECTION_CLICKED, section: "page_settings:collections" }, "*");
@@ -72,15 +74,12 @@ export default function SparkCollections({ initialConfig, shop, navItems, collec
 
     return (
         <div className="bg-white text-black min-h-screen">
-            {!header.hidden && (
-                <Header
-                    header={{ ...header.settings, logo_text: shop.shopName }}
-                    navItems={navItems}
-                    announcementBlocks={visibleAnnouncementBlocks}
-                    logoUrl={logoSettings.logo_url}
-                    logoWidth={logoSettings.logo_width}
-                />
-            )}
+            <SparkHeaderShell
+                config={liveConfig}
+                navItems={navItems}
+                shop={shop}
+                isEditorPreview={isEditorPreview}
+            />
 
             <div
                 className="relative"

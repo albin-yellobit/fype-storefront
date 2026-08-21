@@ -12,6 +12,7 @@ import AuthModal from "@/components/shared/AuthModal";
 import { calculateProductTax } from "@/utils/taxCalculator";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { addToCart, addToGuestCart, addToWishlist, fetchCart, fetchGuestCart, removeFromWishlist } from "@/redux/slices/userSlice";
+import SparkHeaderShell from "./SparkHeaderShell";
 
 // Same real data/redux contract as theme_one's ProductDetailsView (variant
 // resolution, guest-vs-authenticated cart dispatch, wishlist toggle) —
@@ -56,9 +57,8 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
     const settings = liveConfig.page_settings.product;
     // Header/Footer are global across every Spark page, not Home-only — see
     // SparkShop.tsx's identical comment for the full rationale.
-    const { header, announcement_bar: announcementBar, footer } = liveConfig.sections;
+    const { footer } = liveConfig.sections;
     const { logo: logoSettings, social_media: socialMedia } = liveConfig.theme_settings;
-    const visibleAnnouncementBlocks = announcementBar.settings.show ? announcementBar.settings.blocks.filter((b) => !b.hidden) : [];
 
     const selectLayout = () => {
         window.parent.postMessage({ type: SPARK_SECTION_CLICKED, section: "page_settings:product" }, "*");
@@ -135,15 +135,12 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
     if (!product) {
         return (
             <div className="bg-white text-black min-h-screen">
-                {!header.hidden && (
-                    <Header
-                        header={{ ...header.settings, logo_text: shop.shopName }}
-                        navItems={navigation}
-                        announcementBlocks={visibleAnnouncementBlocks}
-                        logoUrl={logoSettings.logo_url}
-                        logoWidth={logoSettings.logo_width}
-                    />
-                )}
+                <SparkHeaderShell
+                    config={liveConfig}
+                    navItems={navigation}
+                    shop={shop}
+                    isEditorPreview={isEditorPreview}
+                />
                 <div className="flex justify-center items-center min-h-[50vh] text-black/60">Product not found</div>
                 {!footer.hidden && (
                     <Footer
@@ -200,15 +197,12 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
 
     return (
         <div className="bg-white text-black min-h-screen pb-20">
-            {!header.hidden && (
-                <Header
-                    header={{ ...header.settings, logo_text: shop.shopName }}
-                    navItems={navigation}
-                    announcementBlocks={visibleAnnouncementBlocks}
-                    logoUrl={logoSettings.logo_url}
-                    logoWidth={logoSettings.logo_width}
-                />
-            )}
+            <SparkHeaderShell
+                config={liveConfig}
+                navItems={navigation}
+                shop={shop}
+                isEditorPreview={isEditorPreview}
+            />
 
             <div
                 className="relative"

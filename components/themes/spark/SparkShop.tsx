@@ -10,6 +10,7 @@ import ProductFilters from "./ProductFilters";
 import { mergeSparkConfig, type SparkConfig, type SparkConfigOverride } from "./sparkConfig";
 import { SPARK_DRAFT_READY, SPARK_DRAFT_UPDATE, SPARK_SECTION_CLICKED, SPARK_SET_ACTIVE_SECTION } from "./SparkHome";
 import type { PaginationMeta, ShopIdentity, StorefrontProduct } from "@/types/storefront";
+import SparkHeaderShell from "./SparkHeaderShell";
 
 const PRODUCTS_PER_ROW_CLASSES: Record<"2" | "3" | "4", string> = {
     "2": "grid-cols-2",
@@ -85,9 +86,9 @@ export default function SparkShop({ initialConfig, shop, navItems, products, pag
     // resolution as SparkHome.tsx, just without Home's per-block click-to-
     // select editing wiring (Header/Footer aren't independently editable
     // outside Home; Shop only has its own single "Shop Layout" panel).
-    const { header, announcement_bar: announcementBar, footer } = liveConfig.sections;
+    const { footer } = liveConfig.sections;
     const { logo: logoSettings, social_media: socialMedia } = liveConfig.theme_settings;
-    const visibleAnnouncementBlocks = announcementBar.settings.show ? announcementBar.settings.blocks.filter((b) => !b.hidden) : [];
+    // const visibleAnnouncementBlocks = announcementBar.settings.show ? announcementBar.settings.blocks.filter((b) => !b.hidden) : [];
     const globalTax = shop.settings?.tax;
     const page = searchParams.page ? Number(searchParams.page) : 1;
     const gridClass = PRODUCTS_PER_ROW_CLASSES[settings.products_per_row];
@@ -116,15 +117,12 @@ export default function SparkShop({ initialConfig, shop, navItems, products, pag
 
     return (
         <div className="bg-white text-black min-h-screen">
-            {!header.hidden && (
-                <Header
-                    header={{ ...header.settings, logo_text: shop.shopName }}
-                    navItems={navItems}
-                    announcementBlocks={visibleAnnouncementBlocks}
-                    logoUrl={logoSettings.logo_url}
-                    logoWidth={logoSettings.logo_width}
-                />
-            )}
+            <SparkHeaderShell
+                config={liveConfig}
+                navItems={navItems}
+                shop={shop}
+                isEditorPreview={isEditorPreview}
+            />
 
             <div
                 className="relative"
