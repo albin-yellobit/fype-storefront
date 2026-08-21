@@ -77,8 +77,9 @@ export default function Header({
     // mounted (live preview) — derive instead of syncing currentAnnouncement
     // to numBlocks via an effect, so there's never an out-of-bounds frame.
     const activeIndex = numBlocks > 0 ? currentAnnouncement % numBlocks : 0;
-    const isScroll = announcementBlocks[0]?.settings.text_animation === "Scroll";
-    const appearAfter = announcementBlocks[activeIndex]?.settings.appear_after || 5;
+    const activeBlockSettings = announcementBlocks[activeIndex]?.settings;
+    const isScroll = activeBlockSettings?.text_animation === "Scroll";
+    const appearAfter = activeBlockSettings?.appear_after || 5;
 
     useEffect(() => {
         if (numBlocks <= 1 || isScroll) return;
@@ -88,11 +89,9 @@ export default function Header({
         return () => clearTimeout(timer);
     }, [numBlocks, isScroll, appearAfter, activeIndex]);
 
-    const firstAnnouncement = announcementBlocks[0]?.settings;
-    const speedSetting = firstAnnouncement?.speed || 20;
+    const speedSetting = activeBlockSettings?.speed || 20;
     const scrollDuration = `${speedSetting * REPEAT_COUNT}s`;
 
-    const activeBlockSettings = announcementBlocks[activeIndex]?.settings;
     const containerBgColor = isScroll ? "transparent" : activeBlockSettings?.background_color || "#111111";
     const containerTextColor = isScroll ? "inherit" : activeBlockSettings?.text_color || "#ffffff";
 
@@ -201,7 +200,7 @@ export default function Header({
                 }}
             >
                 <div
-                    className={`absolute -top-5 left-0 bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 whitespace-nowrap z-30 transition-opacity ${
+                    className={`absolute top-full left-0 mt-1 bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 whitespace-nowrap z-50 transition-opacity ${
                         isActive ? "opacity-100" : "opacity-0 group-hover/block:opacity-100"
                     }`}
                 >
@@ -217,7 +216,7 @@ export default function Header({
             {/* ANNOUNCEMENT BAR */}
             {announcementBlocks.length > 0 && (
                 <div
-                    className="text-[10px] sm:text-[11px] font-bold tracking-[0.2em] uppercase relative z-50 flex items-center h-[34px] sm:h-[36px] overflow-hidden transition-colors duration-500"
+                    className="text-[10px] sm:text-[11px] font-bold tracking-[0.2em] uppercase relative z-50 flex items-center h-[34px] sm:h-[36px] transition-colors duration-500"
                     style={{ backgroundColor: containerBgColor, color: containerTextColor }}
                 >
                     {isScroll ? (

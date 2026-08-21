@@ -20,14 +20,22 @@ interface BannerSliderProps {
 // Full port of Fype-E-Commerce-UI's src/components/BannerSlider.tsx
 // (read-only design reference) — replaces the old static ImageBanner.tsx
 // (see Fype-E-Commerce-UI commit c9cb197 "replace ImageBanner with
-// BannerSlider"). Autoplay is a flat 5s interval regardless of each slide's
-// "Appear After" value — the reference itself never reads that field for
-// timing despite exposing it as an editable property; kept editable here
-// too (SparkCustomizeTheme.tsx) for schema parity, not wired to the timer,
-// matching the reference exactly. Drag-to-reposition the image isn't
-// reimplemented (editor-only interaction convenience needing a postMessage
-// drag protocol across the iframe boundary) — Object Position X/Y is still
-// fully editable via sliders in the editor.
+// BannerSlider"). Autoplay follows each slide's own "Appear After" value
+// so the timing can vary per slide, matching the editor control. Drag-to-
+// reposition the image isn't reimplemented (editor-only interaction
+// convenience needing a postMessage drag protocol across the iframe
+// boundary) — Object Position X/Y is still fully editable via sliders in
+// the editor.
+function getReadableTextColor(hex: string): string {
+    const normalized = hex.replace('#', '').trim();
+    if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return '#000000';
+    const r = parseInt(normalized.slice(0, 2), 16);
+    const g = parseInt(normalized.slice(2, 4), 16);
+    const b = parseInt(normalized.slice(4, 6), 16);
+    const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    return luminance > 0.72 ? '#111827' : '#ffffff';
+}
+
 export default function BannerSlider({ settings, slides, isEditorPreview = false, activeSlideId = null, onSlideClick }: BannerSliderProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -42,11 +50,15 @@ export default function BannerSlider({ settings, slides, isEditorPreview = false
         // Disable autoplay while a slide from this banner is selected in the editor.
         if (isSlideSelectedInEditor) return;
         if (slides.length <= 1) return;
-        const timer = setInterval(() => {
+
+        const activeSlide = slides[currentIndex % slides.length];
+        const delaySeconds = activeSlide?.settings.appear_after || 5;
+        const timer = window.setTimeout(() => {
             setCurrentIndex((prev) => (prev + 1) % slides.length);
-        }, 5000);
-        return () => clearInterval(timer);
-    }, [isSlideSelectedInEditor, slides.length]);
+        }, delaySeconds * 1000);
+
+        return () => window.clearTimeout(timer);
+    }, [isSlideSelectedInEditor, slides, currentIndex]);
 
     let heightClass = "min-h-[750px] lg:min-h-[850px]";
     if (settings.banner_height === "Small") heightClass = "min-h-[400px] lg:min-h-[500px]";
@@ -59,6 +71,9 @@ export default function BannerSlider({ settings, slides, isEditorPreview = false
     const safeIndex = isSlideSelectedInEditor ? activeSlideIndex : currentIndex >= slides.length ? 0 : currentIndex;
     const slide = slides[safeIndex];
     const s = slide.settings;
+
+    const headingHtml = s.heading_text || "";
+    const bodyHtml = s.text || "";
 
     let objectFitClass = "object-cover";
     if (s.image_fit === "Contain") objectFitClass = "object-contain";
@@ -83,9 +98,7 @@ export default function BannerSlider({ settings, slides, isEditorPreview = false
                 className={`relative w-full overflow-hidden ${heightClass} ${isEditorPreview ? "group/block" : ""}`}
                 style={{
                     backgroundColor: settings.background_color,
-                paddingTop: settings.padding_top,
-                paddingBottom: settings.padding_bottom,
-            }}
+                }}
             onClick={(e) => {
                 if (!isEditorPreview) return;
                 e.stopPropagation();
@@ -116,30 +129,31 @@ export default function BannerSlider({ settings, slides, isEditorPreview = false
                 </motion.div>
             </AnimatePresence>
 
-            <div className={`absolute inset-0 z-10 flex flex-col ${horizAlign} ${vertAlign} p-8 md:p-16 lg:p-24 w-full gap-6 pointer-events-none`}>
-                {s.heading_text && (
+            <div
+                className={`absolute inset-0 z-10 flex flex-col ${horizAlign} ${vertAlign} px-8 md:px-16 lg:px-24 w-full gap-6 pointer-events-none`}
+                style={{ paddingTop: settings.padding_top, paddingBottom: settings.padding_bottom }}
+            >
+                {headingHtml && (
                     <motion.h2
                         key={`title-${slide.id}`}
                         initial={{ y: 20, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ delay: 0.3, duration: 0.5 }}
-                        className={`font-medium tracking-tight text-white leading-tight ${headingSizeClass} max-w-5xl`}
+                        className={`font-medium tracking-tight text-white leading-tight ${headingSizeClass} max-w-5xl [&_p]:m-0 [&_strong]:font-bold [&_em]:italic [&_u]:underline [&_a]:underline [&_a]:underline-offset-4`}
                         style={{ color: s.heading_color }}
-                    >
-                        {s.heading_text}
-                    </motion.h2>
+                        dangerouslySetInnerHTML={{ __html: headingHtml }}
+                    />
                 )}
-                {s.text && (
+                {bodyHtml && (
                     <motion.div
                         key={`text-${slide.id}`}
                         initial={{ y: 20, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ delay: 0.2, duration: 0.5 }}
-                        className={`text-white/80 ${s.text_style === "Subtitle" ? "tracking-[0.2em] text-xs sm:text-sm font-semibold uppercase" : "text-base sm:text-lg"} max-w-2xl`}
+                        className={`text-white/80 ${s.text_style === "Subtitle" ? "tracking-[0.2em] text-xs sm:text-sm font-semibold uppercase" : "text-base sm:text-lg"} max-w-2xl [&_p]:m-0 [&_strong]:font-bold [&_em]:italic [&_u]:underline [&_a]:underline [&_a]:underline-offset-4`}
                         style={{ color: s.text_color }}
-                    >
-                        {s.text}
-                    </motion.div>
+                        dangerouslySetInnerHTML={{ __html: bodyHtml }}
+                    />
                 )}
                 {s.button_label && (
                     <motion.div
@@ -151,8 +165,11 @@ export default function BannerSlider({ settings, slides, isEditorPreview = false
                     >
                         <Link
                             href={s.button_link || "#"}
+                            onClick={(e) => e.stopPropagation()}
                             className={`px-8 py-3.5 rounded-full uppercase tracking-widest text-xs font-medium transition-colors inline-block ${
-                                s.button_style === "Filled" ? "hover:opacity-90" : "bg-transparent border hover:bg-white hover:text-black"
+                                s.button_style === "Filled"
+                                    ? "hover:opacity-90"
+                                    : `hover:bg-white hover:text-[${getReadableTextColor(s.button_color || '#ffffff')}]`
                             }`}
                             style={
                                 s.button_style === "Filled"

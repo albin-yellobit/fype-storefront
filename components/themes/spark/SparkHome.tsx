@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Header from "./Header";
 import BannerSlider from "./sections/BannerSlider";
 import RichText from "./sections/RichText";
@@ -139,6 +139,8 @@ export default function SparkHome({
     // real nav-link navigation from firing when a merchant is just trying to
     // select the Header section while editing.
     const [isEditorPreview, setIsEditorPreview] = useState(false);
+    const [isUserScrolling, setIsUserScrolling] = useState(false);
+    const scrollLockRef = useRef<number | null>(null);
 
     useEffect(() => {
         if (typeof window === "undefined" || window.parent === window) return;
@@ -268,7 +270,7 @@ export default function SparkHome({
         if (!isEditorPreview) return;
 
         const targetId = activeBlock ? `spark-block-${activeBlock.id}` : activeSection ? `spark-section-${activeSection}` : null;
-        if (!targetId) return;
+        if (!targetId || isUserScrolling) return;
 
         const target = document.getElementById(targetId) ?? (activeBlock?.sectionId ? document.getElementById(`spark-section-${activeBlock.sectionId}`) : null);
         if (!target) return;
@@ -278,7 +280,30 @@ export default function SparkHome({
         });
 
         return () => window.cancelAnimationFrame(frame);
-    }, [activeBlock, activeSection, isEditorPreview]);
+    }, [activeBlock, activeSection, isEditorPreview, isUserScrolling]);
+
+    useEffect(() => {
+        if (!isEditorPreview) return;
+
+        const onUserScroll = () => {
+            setIsUserScrolling(true);
+            if (scrollLockRef.current) window.clearTimeout(scrollLockRef.current);
+            scrollLockRef.current = window.setTimeout(() => {
+                setIsUserScrolling(false);
+                scrollLockRef.current = null;
+            }, 180);
+        };
+
+        window.addEventListener("wheel", onUserScroll, { passive: true });
+        window.addEventListener("touchmove", onUserScroll, { passive: true });
+        window.addEventListener("scroll", onUserScroll, { passive: true });
+        return () => {
+            window.removeEventListener("wheel", onUserScroll);
+            window.removeEventListener("touchmove", onUserScroll);
+            window.removeEventListener("scroll", onUserScroll);
+            if (scrollLockRef.current) window.clearTimeout(scrollLockRef.current);
+        };
+    }, [isEditorPreview]);
 
     // Selecting a section in the editor must never actually follow the
     // real nav/search/account/cart links inside Header — preventDefault in
