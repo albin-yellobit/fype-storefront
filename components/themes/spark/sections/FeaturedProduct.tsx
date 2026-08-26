@@ -67,7 +67,16 @@ export default function FeaturedProduct({ settings, storeId, globalTax, initialP
     const ssrKey = useRef(settings.product_id).current;
 
     useEffect(() => {
-        if (settings.product_id === ssrKey) return;
+        // If the editor switched back to the original SSR product id, restore
+        // the SSR-provided `initialProduct` instead of skipping update; the
+        // previous implementation returned early which left the `product`
+        // state pointing at whatever was last fetched (commonly the other
+        // product), causing the canvas to not reflect the reverted selection.
+        if (settings.product_id === ssrKey) {
+            setQuantity(1);
+            setProduct(initialProduct ?? null);
+            return;
+        }
         setQuantity(1);
         if (!settings.product_id) {
             setProduct(null);
@@ -84,8 +93,7 @@ export default function FeaturedProduct({ settings, storeId, globalTax, initialP
         return () => {
             cancelled = true;
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [settings.product_id, storeId]);
+    }, [settings.product_id, storeId, initialProduct, ssrKey]);
 
     const isPlaceholder = !product && isEditorPreview;
     const displayProduct = product ?? (isPlaceholder ? placeholderProduct() : null);
@@ -111,6 +119,66 @@ export default function FeaturedProduct({ settings, storeId, globalTax, initialP
     // action when `isEditorPreview` is true so no real cart requests fire.
     const showQuickCart = settings.show_add_to_cart && !isPlaceholder && !displayProduct.hasVariants;
     const productHref = `/products/${displayProduct.productId}`;
+    const [copied, setCopied] = useState(false);
+
+    const handleShareClick = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        try {
+            const url = `${window.location.origin}${productHref}`;
+            console.log('[FeaturedProduct] attempting share/copy for url:', url);
+            // Native share first
+            if ((navigator as any).share) {
+                try {
+                    await (navigator as any).share({ title: displayProduct.name || 'Product', text: displayProduct.description?.replace(/<[^>]*>/g, '') || displayProduct.name || '', url });
+                    return;
+                } catch (err) {
+                    console.warn('native share failed, falling back to copy', err);
+                }
+            }
+
+            let didCopy = false;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                try {
+                    await navigator.clipboard.writeText(url);
+                    didCopy = true;
+                } catch (err) {
+                    console.warn('navigator.clipboard failed', err);
+                }
+            }
+
+            if (!didCopy) {
+                try {
+                    const ta = document.createElement('textarea');
+                    ta.value = url;
+                    ta.setAttribute('readonly', '');
+                    ta.style.position = 'fixed';
+                    ta.style.left = '-9999px';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    ta.setSelectionRange(0, ta.value.length);
+                    const ok = document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    didCopy = !!ok;
+                } catch (err) {
+                    console.warn('execCommand fallback failed', err);
+                }
+            }
+
+            if (!didCopy) {
+                try {
+                    // eslint-disable-next-line no-alert
+                    window.prompt('Copy this link', url);
+                } catch (err) {
+                    console.warn('prompt fallback failed', err);
+                }
+            } else {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            }
+        } catch (err) {
+            console.error('Failed to copy/share link', err);
+        }
+    };
 
     const handleAddToCart = async () => {
         if (adding) return;
@@ -236,14 +304,14 @@ export default function FeaturedProduct({ settings, storeId, globalTax, initialP
             )}
 
             <div className="flex items-center justify-between text-sm text-gray-500 w-full font-light pt-0 border-none">
-                <button className="flex items-center gap-2 hover:text-black transition-colors group">
+                <button onClick={handleShareClick} className="flex items-center gap-2 hover:text-black transition-colors group" aria-label="Share product">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:-translate-y-[1px] transition-transform">
                         <circle cx="18" cy="5" r="3" />
                         <circle cx="6" cy="12" r="3" />
                         <circle cx="18" cy="19" r="3" />
                         <path d="m8.59 13.51 6.83 3.98M15.41 6.51l-6.82 3.98" />
                     </svg>
-                    <span>Share</span>
+                    <span>{copied ? 'Copied' : 'Share'}</span>
                 </button>
                 <Link
                     href={productHref}

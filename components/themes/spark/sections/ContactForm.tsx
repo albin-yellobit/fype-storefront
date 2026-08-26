@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import type { SparkContactFormSettings } from "../sparkConfig";
+import { getCurrentStoreId } from "@/lib/client-store-context";
+import { getApiErrorMessage, postApi } from "@/lib/client-api";
 
 interface ContactFormProps {
     settings: SparkContactFormSettings;
@@ -18,6 +20,16 @@ interface ContactFormProps {
 // Featured Collection/Product/Collection List.
 export default function ContactForm({ settings }: ContactFormProps) {
     const [submitted, setSubmitted] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState<boolean>(false);
+    const [formData, setFormData] = useState({
+        name: "",
+        email: "",
+        phone: "",
+        subject: "",
+        location: "",
+        message: "",
+    });
 
     const showName = settings.fields.includes("Name");
     const showEmail = settings.fields.includes("Email");
@@ -26,10 +38,62 @@ export default function ContactForm({ settings }: ContactFormProps) {
     const showLocation = settings.fields.includes("Location");
     const showMessage = settings.fields.includes("Message");
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { id, value } = e.target;
+        setFormData((prevData) => ({
+            ...prevData,
+            [id]: value,
+        }));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setSubmitted(true);
-        setTimeout(() => setSubmitted(false), 5000);
+        try {
+            const storeId = getCurrentStoreId();
+
+            if(!storeId) {
+                setError("Store not found");
+                return;
+            }
+
+            setLoading(true);
+            setError(null);
+
+            await postApi("/commerce/contact-owner", {
+            storeId,
+            fields: {
+                name: formData.name,
+                email: formData.email,
+                phone: formData.phone,
+                subject: formData.subject,
+                location: formData.location,
+                message: formData.message,
+            },
+        });
+            setSubmitted(true);
+
+            setFormData({
+                name: "",
+                email: "",
+                phone: "",
+                subject: "",
+                location: "",
+                message: "",
+            });
+
+            setTimeout(() => {
+                setSubmitted(false);
+            }, 5000);
+        } catch (error) {
+            setError(
+                getApiErrorMessage(
+                    error,
+                    "Unable to send your message. Please try again."
+                )
+            );
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -59,6 +123,8 @@ export default function ContactForm({ settings }: ContactFormProps) {
                                         <input
                                             type="text"
                                             id="name"
+                                            value={formData.name}
+                                            onChange={handleChange}
                                             required
                                             className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
                                         />
@@ -72,6 +138,8 @@ export default function ContactForm({ settings }: ContactFormProps) {
                                         <input
                                             type="email"
                                             id="email"
+                                            value={formData.email}
+                                            onChange={handleChange}
                                             required
                                             className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
                                         />
@@ -88,6 +156,8 @@ export default function ContactForm({ settings }: ContactFormProps) {
                                 <input
                                     type="tel"
                                     id="phone"
+                                    value={formData.phone}
+                                    onChange={handleChange}
                                     className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
                                 />
                             </div>
@@ -101,6 +171,8 @@ export default function ContactForm({ settings }: ContactFormProps) {
                                 <input
                                     type="text"
                                     id="subject"
+                                    value={formData.subject}
+                                    onChange={handleChange}
                                     required
                                     className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
                                 />
@@ -115,6 +187,8 @@ export default function ContactForm({ settings }: ContactFormProps) {
                                 <input
                                     type="text"
                                     id="location"
+                                    value={formData.location}
+                                    onChange={handleChange}
                                     className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
                                 />
                             </div>
@@ -129,6 +203,8 @@ export default function ContactForm({ settings }: ContactFormProps) {
                                     id="message"
                                     required
                                     rows={5}
+                                    value={formData.message}
+                                    onChange={handleChange}
                                     className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:border-black focus:ring-1 focus:ring-black outline-none transition-all resize-none"
                                 />
                             </div>
