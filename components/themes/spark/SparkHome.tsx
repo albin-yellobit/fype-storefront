@@ -279,7 +279,7 @@ export default function SparkHome({
         });
 
         return () => window.cancelAnimationFrame(frame);
-    }, [activeBlock, activeSection, isEditorPreview, isUserScrolling]);
+    }, [activeBlock, activeSection, isEditorPreview]);
 
     useEffect(() => {
         if (!isEditorPreview) return;
