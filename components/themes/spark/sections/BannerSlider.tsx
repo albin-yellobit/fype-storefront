@@ -95,7 +95,7 @@ export default function BannerSlider({ settings, slides, isEditorPreview = false
         return (
             <div
                 id={`spark-block-${slide.id}`}
-                className={`relative w-full overflow-hidden ${heightClass} ${isEditorPreview ? "group/block" : ""}`}
+                className={`relative w-full overflow-hidden flex flex-col ${heightClass} ${isEditorPreview ? "group/block" : ""}`}
                 style={{
                     backgroundColor: settings.background_color,
                 }}
@@ -130,7 +130,7 @@ export default function BannerSlider({ settings, slides, isEditorPreview = false
             </AnimatePresence>
 
             <div
-                className={`absolute inset-0 z-10 flex flex-col ${horizAlign} ${vertAlign} px-8 md:px-16 lg:px-24 w-full gap-6 pointer-events-none`}
+                className={`relative z-10 flex flex-col flex-1 w-full ${horizAlign} ${vertAlign} px-8 md:px-16 lg:px-24 w-full gap-6 pointer-events-none`}
                 style={{ paddingTop: settings.padding_top, paddingBottom: settings.padding_bottom }}
             >
                 {headingHtml && (
@@ -169,7 +169,7 @@ export default function BannerSlider({ settings, slides, isEditorPreview = false
                             className={`px-8 py-3.5 rounded-full uppercase tracking-widest text-xs font-medium transition-colors inline-block ${
                                 s.button_style === "Filled"
                                     ? "hover:opacity-90"
-                                    : `hover:bg-white hover:text-[${getReadableTextColor(s.button_color || '#ffffff')}]`
+                                    : `hover:bg-white hover:text-[${getReadableTextColor(s.button_color || '#ffffff')}] border border-[${s.button_color || '#ffffff'}] bg-transparent`
                             }`}
                             style={
                                 s.button_style === "Filled"
