@@ -952,6 +952,7 @@ export const sparkDefaultConfig: SparkConfig = {
                             link: "",
                             style: "Outline",
                             button_color: "#000000",
+                            button_text_color: "#ffffff",
                         },
                     },
                 ],
