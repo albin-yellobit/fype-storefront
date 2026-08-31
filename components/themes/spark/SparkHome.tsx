@@ -198,14 +198,14 @@ export default function SparkHome({
                   initial: { opacity: 0 },
                   whileInView: { opacity: 1 },
                   viewport: { once: true, amount: 0.25 },
-                  transition: { duration: 0.45, ease: "easeOut" },
+                  transition: { duration: 0.45, ease: "easeOut" as const },
               }
             : sectionAnimation === "Slide Up"
               ? {
                     initial: { opacity: 0, y: 24 },
                     whileInView: { opacity: 1, y: 0 },
                     viewport: { once: true, amount: 0.25 },
-                    transition: { duration: 0.5, ease: "easeOut" },
+                    transition: { duration: 0.5, ease: "easeOut" as const },
                 }
               : null;
 
