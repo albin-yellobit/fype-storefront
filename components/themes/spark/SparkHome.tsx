@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { motion } from "motion/react";
 import Header from "./Header";
 import BannerSlider from "./sections/BannerSlider";
 import RichText from "./sections/RichText";
@@ -188,6 +189,25 @@ export default function SparkHome({
     // just naturally renders starting at the top of the page.
     const heroOverlap = !header.hidden && header.settings.glass_effect === true && header.settings.sticky_header === true;
     const { colors: colorSchemeSettings, logo: logoSettings, social_media: socialMedia } = liveConfig.theme_settings;
+    const sectionSpacing = Math.max(0, liveConfig.theme_settings.layout.section_spacing ?? 0);
+    const sectionAnimation = liveConfig.theme_settings.animation.section_animation;
+
+    const sectionMotionProps =
+        sectionAnimation === "Fade"
+            ? {
+                  initial: { opacity: 0 },
+                  whileInView: { opacity: 1 },
+                  viewport: { once: true, amount: 0.25 },
+                  transition: { duration: 0.45, ease: "easeOut" },
+              }
+            : sectionAnimation === "Slide Up"
+              ? {
+                    initial: { opacity: 0, y: 24 },
+                    whileInView: { opacity: 1, y: 0 },
+                    viewport: { once: true, amount: 0.25 },
+                    transition: { duration: 0.5, ease: "easeOut" },
+                }
+              : null;
 
     // Matches the reference exactly: only background/backgroundGradient/text
     // of the active scheme are applied, as an inline style on the page root
@@ -196,11 +216,20 @@ export default function SparkHome({
     // the reference itself (see sparkConfig.ts's SparkColorScheme comment).
     const activeScheme =
         colorSchemeSettings.schemes.find((s) => s.id === colorSchemeSettings.active_scheme_id) ?? colorSchemeSettings.schemes[0];
+    const fontStack = (font?: string) => {
+        if (!font) return '"Outfit", sans-serif';
+        if (font.includes("Playfair Display")) return '"Playfair Display", serif';
+        if (font.includes("JetBrains Mono")) return '"JetBrains Mono", monospace';
+        return '"Outfit", sans-serif';
+    };
     const rootStyle = activeScheme
         ? {
             backgroundColor: activeScheme.background,
             backgroundImage: activeScheme.background_gradient || undefined,
             color: activeScheme.text,
+            ["--spark-heading-font" as string]: fontStack(liveConfig.theme_settings.typography.heading_font),
+            ["--spark-body-font" as string]: fontStack(liveConfig.theme_settings.typography.body_font),
+            ["--spark-accent-font" as string]: fontStack(liveConfig.theme_settings.typography.sub_heading_font),
         }
         : undefined;
 
@@ -447,12 +476,18 @@ export default function SparkHome({
                 onHeaderClick={() => selectSection("header")}
                 heroOverlap={heroOverlap}
             />
-            {body.map((section) =>
+            {body.map((section, index) =>
                 section.hidden ? null : (
-                    <div id={`spark-section-${section.id}`} key={section.id} {...sectionProps(section.id)}>
+                    <motion.div
+                        id={`spark-section-${section.id}`}
+                        key={section.id}
+                        {...sectionProps(section.id)}
+                        {...sectionMotionProps}
+                        style={index === 0 ? undefined : { marginTop: `${sectionSpacing}px` }}
+                    >
                         <SectionOutline label={BODY_SECTION_LABELS[section.type]} active={activeSection === section.id} isEditorPreview={isEditorPreview} />
                         {renderBodySection(section)}
-                    </div>
+                    </motion.div>
                 )
             )}
             {!footer.hidden && (

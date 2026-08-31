@@ -1,7 +1,36 @@
 @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital@0;1&display=swap");
 
 .spark-theme-root {
-    font-family: "Outfit", sans-serif;
+    --spark-heading-font: "Outfit", sans-serif;
+    --spark-body-font: "Outfit", sans-serif;
+    --spark-accent-font: "Playfair Display", serif;
+    font-family: var(--spark-body-font);
+}
+
+.spark-theme-root h1,
+.spark-theme-root h2,
+.spark-theme-root h3,
+.spark-theme-root h4,
+.spark-theme-root h5,
+.spark-theme-root h6,
+.spark-theme-root .spark-font-heading {
+    font-family: var(--spark-heading-font);
+}
+
+.spark-theme-root p,
+.spark-theme-root li,
+.spark-theme-root label,
+.spark-theme-root input,
+.spark-theme-root textarea,
+.spark-theme-root select,
+.spark-theme-root .spark-font-body {
+    font-family: var(--spark-body-font);
+}
+
+.spark-theme-root button,
+.spark-theme-root a,
+.spark-theme-root .spark-font-accent {
+    font-family: var(--spark-accent-font);
 }
 
 /* Announcement bar "Scroll" text animation (Header.tsx) — a duplicated,

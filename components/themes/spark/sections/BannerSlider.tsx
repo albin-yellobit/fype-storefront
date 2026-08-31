@@ -98,6 +98,8 @@ export default function BannerSlider({ settings, slides, isEditorPreview = false
                 className={`relative w-full overflow-hidden flex flex-col ${heightClass} ${isEditorPreview ? "group/block" : ""}`}
                 style={{
                     backgroundColor: settings.background_color,
+                    paddingTop: `${settings.padding_top}px`,
+                    paddingBottom: `${settings.padding_bottom}px`,
                 }}
             onClick={(e) => {
                 if (!isEditorPreview) return;
@@ -131,7 +133,7 @@ export default function BannerSlider({ settings, slides, isEditorPreview = false
 
             <div
                 className={`relative z-10 flex flex-col flex-1 w-full ${horizAlign} ${vertAlign} px-8 md:px-16 lg:px-24 w-full gap-6 pointer-events-none`}
-                style={{ paddingTop: settings.padding_top, paddingBottom: settings.padding_bottom }}
+                style={{ paddingTop: 0, paddingBottom: 0 }}
             >
                 {headingHtml && (
                     <motion.h2
