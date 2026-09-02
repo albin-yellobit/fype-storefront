@@ -16,7 +16,7 @@ interface StorefrontChromeFooterProps {
 export default function StorefrontChromeFooter({ shopName, navbar, themeConfig }: StorefrontChromeFooterProps) {
     const config = sparkConfigFromStorefrontChrome(shopName, navbar?.logoUrl, themeConfig);
     const { footer } = config.sections;
-    if (footer.hidden) return null;
+    if (footer.hidden) return <></>;
 
     return (
         <Footer
