@@ -57,13 +57,14 @@ export default async function AccountsPage() {
                 footer={theme.footer}
                 navItems={navItems}
                 storeId={shop.shopId}
+                themeConfig={theme.themeConfig}
             />
 
             <AccountLayout title="Account Overview" storeId={shop.shopId}>
                 <AccountOverview />
             </AccountLayout>
 
-            <Footer footer={theme.footer} navbar={theme.navbar} footerText={theme.footerText} shopName={shop.shopName} footerPages={footerPages} />
+            <Footer footer={theme.footer} navbar={theme.navbar} footerText={theme.footerText} shopName={shop.shopName} footerPages={footerPages} themeConfig={theme.themeConfig} />
         </div>
     );
 }

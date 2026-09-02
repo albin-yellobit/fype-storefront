@@ -1,0 +1,49 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { STOREFRONT_UNLOCK_COOKIE, STOREFRONT_UNLOCK_MAX_AGE } from "@/lib/storefront-gate";
+
+export async function POST(request: NextRequest) {
+    const body = (await request.json().catch(() => null)) as { password?: string; returnTo?: string } | null;
+    const password = body?.password;
+
+    if (!password || typeof password !== "string") {
+        return NextResponse.json({ success: false, message: "Password is required" }, { status: 400 });
+    }
+
+    const host = request.headers.get("host") ?? "";
+    const domain = host.split(":")[0];
+
+    const { env } = await getCloudflareContext({ async: true });
+    if (!env.API_BASE_URL) {
+        return NextResponse.json({ success: false, message: "Storefront is not configured" }, { status: 500 });
+    }
+
+    const res = await fetch(`${env.API_BASE_URL}/commerce/shops/unlock-storefront`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain, password }),
+    });
+
+    const json = (await res.json().catch(() => null)) as {
+        success?: boolean;
+        message?: string;
+        data?: { shopId?: string };
+    } | null;
+
+    if (!res.ok || !json?.data?.shopId) {
+        return NextResponse.json(
+            { success: false, message: json?.message || "Incorrect password" },
+            { status: res.status === 401 ? 401 : res.status === 404 ? 404 : 400 }
+        );
+    }
+
+    const response = NextResponse.json({ success: true, shopId: json.data.shopId });
+    response.cookies.set(STOREFRONT_UNLOCK_COOKIE, json.data.shopId, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: STOREFRONT_UNLOCK_MAX_AGE,
+    });
+    return response;
+}

@@ -1,4 +1,5 @@
 import "./spark.css";
+import SparkCartShell from "./SparkCartShell";
 
 interface LayoutProps {
     shopName?: string;
@@ -6,9 +7,12 @@ interface LayoutProps {
     children: React.ReactNode;
 }
 
-// No BottomNav yet (theme_one's is a theme_one-specific mobile chrome
-// component, not ported) — Spark doesn't have mobile bottom navigation in
-// the design reference either, so this stays a plain wrapper for now.
-export default function Layout({ children }: LayoutProps) {
-    return <div className="spark-theme-root">{children}</div>;
+// Cart drawer + header count badge live here so every Spark page shares
+// the same add-to-cart behavior as Fype-E-Commerce-UI SparkTheme.
+export default function Layout({ storeId, children }: LayoutProps) {
+    return (
+        <div className="spark-theme-root">
+            <SparkCartShell storeId={storeId}>{children}</SparkCartShell>
+        </div>
+    );
 }

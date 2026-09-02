@@ -4,6 +4,7 @@ export type TenantInfo = {
     shopId: string;
     storeDomain: string;
     themeId: string;
+    isPublished: boolean;
 };
 
 const CACHE_TTL_SECONDS = 300;
@@ -17,9 +18,12 @@ async function fetchTenantFromApi(domain: string, apiBaseUrl: string): Promise<T
 
     if (!res.ok) return null;
 
-    type ShopResponse = { shopId?: string; themeId?: string };
-    const data = (await res.json()) as { shop?: ShopResponse } & ShopResponse;
-    const shop = data?.shop ?? data;
+    type ShopResponse = { shopId?: string; themeId?: string; isPublished?: boolean };
+    const json = (await res.json()) as {
+        shop?: ShopResponse;
+        data?: { shop?: ShopResponse };
+    } & ShopResponse;
+    const shop = json.data?.shop ?? json.shop ?? json;
     if (!shop?.shopId) return null;
 
     return {
@@ -27,6 +31,7 @@ async function fetchTenantFromApi(domain: string, apiBaseUrl: string): Promise<T
         storeDomain: domain,
         // falls back to theme_one until every shop response carries themeId — see Prerequisites in the runbook
         themeId: shop.themeId ?? "theme_one",
+        isPublished: shop.isPublished !== false,
     };
 }
 
@@ -38,7 +43,12 @@ export async function resolveTenant(domain: string): Promise<TenantInfo | null> 
     const cacheKey = `tenant:${domain}`;
 
     const cached = await kv.get<TenantInfo>(cacheKey, "json");
-    if (cached) return cached;
+    if (cached?.shopId) {
+        return {
+            ...cached,
+            isPublished: cached.isPublished !== false,
+        };
+    }
 
     if (!env.API_BASE_URL) throw new Error("API_BASE_URL is not configured");
 
@@ -52,6 +62,8 @@ export async function resolveTenant(domain: string): Promise<TenantInfo | null> 
     }
     if (!tenant) return null;
 
-    await kv.put(cacheKey, JSON.stringify(tenant), { expirationTtl: CACHE_TTL_SECONDS });
+    await kv.put(cacheKey, JSON.stringify(tenant), {
+        expirationTtl: tenant.isPublished === false ? 30 : CACHE_TTL_SECONDS,
+    });
     return tenant;
 }

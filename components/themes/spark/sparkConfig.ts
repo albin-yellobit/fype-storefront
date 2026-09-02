@@ -554,22 +554,25 @@ export interface SparkCollectionPageSettings {
     show_badges: boolean;
 }
 
+export interface SparkProductHighlight {
+    title: string;
+    text: string;
+}
+
 export interface SparkProductPageSettings {
     image_layout: "Main + Thumbnails Below" | "Main + Thumbnails Side" | "Single Image";
     show_breadcrumb: boolean;
     show_description: boolean;
     description_position: "Below Add to Cart" | "Below Product Title";
+    show_wishlist: boolean;
     // Rendered as a real link (unlike the reference's own dead
     // `customLinkPage`, collected but never read) — custom_link_url is new,
     // not ported from the reference, so the link actually goes somewhere.
     custom_link_label: string;
     custom_link_url: string;
-    // No sizeSelectorLabel field — deliberately dropped, not ported. The
-    // real PDP's option label is data-driven off each option's own
-    // `option.name` (a product can have both "Size" and "Color" options at
-    // once); the reference's single hardcoded label assumes exactly one
-    // option always named "Size," which doesn't generalize to real
-    // multi-option products.
+    // Merchant-authored trust/policy rows (Truck / Refresh / Shield icons in
+    // order). Empty titles are not rendered — never mock US-shipping copy.
+    highlights: SparkProductHighlight[];
 }
 
 export interface SparkPageSettings {
@@ -695,7 +698,11 @@ export function mergeSparkConfig(base: SparkConfig, override?: SparkConfigOverri
                 ...base.page_settings.collection_page,
                 ...(o.page_settings?.collection_page ?? {}),
             },
-            product: { ...base.page_settings.product, ...(o.page_settings?.product ?? {}) },
+            product: {
+                ...base.page_settings.product,
+                ...(o.page_settings?.product ?? {}),
+                highlights: o.page_settings?.product?.highlights ?? base.page_settings.product.highlights,
+            },
         },
     };
 }
@@ -1314,8 +1321,14 @@ export const sparkDefaultConfig: SparkConfig = {
             show_breadcrumb: true,
             show_description: true,
             description_position: "Below Add to Cart",
+            show_wishlist: true,
             custom_link_label: "",
             custom_link_url: "",
+            highlights: [
+                { title: "", text: "" },
+                { title: "", text: "" },
+                { title: "", text: "" },
+            ],
         },
     },
 };

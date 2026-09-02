@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { addToCart, addToGuestCart, fetchCart, fetchGuestCart } from "@/redux/slices/userSlice";
 import { calculateProductTax } from "@/utils/taxCalculator";
 import type { StorefrontProduct, TaxSettings } from "@/types/storefront";
+import { useSparkCart } from "./SparkCartContext";
 
 const DEFAULT_PRODUCT_IMAGE =
     "https://i0.wp.com/mikeyarce.com/wp-content/uploads/2021/09/woocommerce-placeholder.png?ssl=1";
@@ -55,6 +56,7 @@ export default function ProductCard({
 }: SparkProductCardProps) {
     const dispatch = useAppDispatch();
     const { isAuthenticated } = useAppSelector((state) => state.user);
+    const { openCart } = useSparkCart();
     const [adding, setAdding] = useState(false);
     const [added, setAdded] = useState(false);
     // Lazy initializer — Date.now() is impure, so it's evaluated once at
@@ -88,14 +90,17 @@ export default function ProductCard({
         setAdding(true);
         try {
             if (isAuthenticated) {
-                await dispatch(addToCart({ storeId, productId: product.productId, quantity: 1 }));
+                await dispatch(addToCart({ storeId, productId: product.productId, quantity: 1 })).unwrap();
                 dispatch(fetchCart({ storeId }));
             } else {
-                await dispatch(addToGuestCart({ storeId, productId: product.productId, quantity: 1 }));
+                await dispatch(addToGuestCart({ storeId, productId: product.productId, quantity: 1 })).unwrap();
                 dispatch(fetchGuestCart({ storeId }));
             }
+            openCart();
             setAdded(true);
             setTimeout(() => setAdded(false), 1500);
+        } catch {
+            // keep the card in place; cart error surfaces via redux
         } finally {
             setAdding(false);
         }

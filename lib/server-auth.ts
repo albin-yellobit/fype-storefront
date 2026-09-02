@@ -27,5 +27,11 @@ export async function setServerAuthCookie(token: string): Promise<void> {
 
 export async function clearServerAuthCookie(): Promise<void> {
     const store = await cookies();
-    store.delete(AUTH_COOKIE_NAME);
+    store.set(AUTH_COOKIE_NAME, "", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 0,
+    });
 }

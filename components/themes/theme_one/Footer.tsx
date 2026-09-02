@@ -7,6 +7,7 @@ interface FooterProps {
     footerText?: string;
     shopName?: string;
     footerPages: Page[];
+    themeConfig?: Record<string, unknown>;
 }
 
 const socialIconMap = {

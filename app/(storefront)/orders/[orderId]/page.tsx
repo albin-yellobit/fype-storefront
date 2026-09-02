@@ -58,13 +58,14 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ or
                 footer={theme.footer}
                 navItems={navItems}
                 storeId={shop.shopId}
+                themeConfig={theme.themeConfig}
             />
 
             <AccountLayout title="Order Details" storeId={shop.shopId}>
                 <OrderDetailLoader storeId={shop.shopId} orderId={orderId} />
             </AccountLayout>
 
-            <Footer footer={theme.footer} navbar={theme.navbar} footerText={theme.footerText} shopName={shop.shopName} footerPages={footerPages} />
+            <Footer footer={theme.footer} navbar={theme.navbar} footerText={theme.footerText} shopName={shop.shopName} footerPages={footerPages} themeConfig={theme.themeConfig} />
         </div>
     );
 }

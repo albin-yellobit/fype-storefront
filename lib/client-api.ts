@@ -5,10 +5,22 @@ import { getCurrentStoreId } from "./client-store-context";
 
 const AUTH_TOKEN_KEY = "auth_token";
 const GUEST_ID_KEY = "guest_id";
+const SIGNED_OUT_KEY = "sf_signed_out";
 
 export const getAuthToken = () => (typeof window === "undefined" ? null : localStorage.getItem(AUTH_TOKEN_KEY));
-export const setAuthToken = (token: string) => localStorage.setItem(AUTH_TOKEN_KEY, token);
+export const setAuthToken = (token: string) => {
+    localStorage.setItem(AUTH_TOKEN_KEY, token);
+    if (typeof sessionStorage !== "undefined") sessionStorage.removeItem(SIGNED_OUT_KEY);
+};
 export const clearAuthToken = () => localStorage.removeItem(AUTH_TOKEN_KEY);
+
+export const markSignedOut = () => {
+    if (typeof sessionStorage !== "undefined") sessionStorage.setItem(SIGNED_OUT_KEY, "1");
+};
+export const isSignedOutSession = () => (typeof sessionStorage === "undefined" ? false : sessionStorage.getItem(SIGNED_OUT_KEY) === "1");
+export const clearSignedOutSession = () => {
+    if (typeof sessionStorage !== "undefined") sessionStorage.removeItem(SIGNED_OUT_KEY);
+};
 
 export const getGuestId = () => (typeof window === "undefined" ? null : localStorage.getItem(GUEST_ID_KEY));
 export const setGuestId = (id: string) => localStorage.setItem(GUEST_ID_KEY, id);
@@ -23,7 +35,7 @@ api.interceptors.request.use((config) => {
     const token = getAuthToken();
     const guestId = getGuestId();
 
-    if (token) {
+    if (token && !isSignedOutSession()) {
         config.headers.Authorization = `Bearer ${token}`;
     }
 
@@ -48,13 +60,20 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        const requestUrl = String(originalRequest?.url ?? "");
+        const skipRefresh =
+            !getAuthToken() ||
+            isSignedOutSession() ||
+            requestUrl.includes("/logout") ||
+            requestUrl.includes("/refresh");
+
+        if (error.response?.status === 401 && !originalRequest._retry && !skipRefresh) {
             originalRequest._retry = true;
 
             try {
                 const storeId = getCurrentStoreId();
-                const res = await api.post(`/customer/${storeId}/auth/refresh`);
-                const newToken: string = res.data?.token;
+                const res = await api.post(`/customer/${storeId}/refresh`, {}, { withCredentials: true });
+                const newToken: string = res.data?.data?.token ?? res.data?.token;
 
                 if (newToken) {
                     setAuthToken(newToken);

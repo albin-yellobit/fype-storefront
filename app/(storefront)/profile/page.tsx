@@ -57,13 +57,14 @@ export default async function ProfilePage() {
                 footer={theme.footer}
                 navItems={navItems}
                 storeId={shop.shopId}
+                themeConfig={theme.themeConfig}
             />
 
             <AccountLayout title="My Profile" storeId={shop.shopId}>
                 <ProfileView storeId={shop.shopId} />
             </AccountLayout>
 
-            <Footer footer={theme.footer} navbar={theme.navbar} footerText={theme.footerText} shopName={shop.shopName} footerPages={footerPages} />
+            <Footer footer={theme.footer} navbar={theme.navbar} footerText={theme.footerText} shopName={shop.shopName} footerPages={footerPages} themeConfig={theme.themeConfig} />
         </div>
     );
 }

@@ -1,28 +1,56 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Provider } from "react-redux";
 import { makeStore } from "@/redux/store";
-import { useAppDispatch } from "@/redux/hooks";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { setCurrentStoreId } from "@/lib/client-store-context";
-import { fetchUserProfile, fetchCart, fetchGuestCart } from "@/redux/slices/userSlice";
+import { isSignedOutSession, getAuthToken } from "@/lib/client-api";
+import { fetchUserProfile, fetchCart, fetchGuestCart, fetchWishlist, markAuthChecked } from "@/redux/slices/userSlice";
 
-// Mirrors the SPA's App.tsx bootstrap: try the authenticated profile+cart first,
-// fall back to a guest cart if that fails. Runs once per storeId. Shared by both
-// the (storefront) and (checkout) route groups — identical bootstrap either way.
 function AuthBootstrap({ storeId }: { storeId: string }) {
     const dispatch = useAppDispatch();
 
     useEffect(() => {
         (async () => {
+            if (isSignedOutSession() || !getAuthToken()) {
+                dispatch(markAuthChecked());
+                dispatch(fetchGuestCart({ storeId }));
+                return;
+            }
             const profileResult = await dispatch(fetchUserProfile({ storeId }));
             if (fetchUserProfile.fulfilled.match(profileResult)) {
                 dispatch(fetchCart({ storeId }));
+                dispatch(fetchWishlist({ storeId }));
             } else {
                 dispatch(fetchGuestCart({ storeId }));
             }
         })();
     }, [dispatch, storeId]);
+
+    return null;
+}
+
+// AuthBootstrap only runs once on mount. After OTP login the shopper is
+// already past that, so cart/wishlist from the account would stay stale
+// until the next add-to-cart. Hydrate whenever auth flips to signed-in
+// after the initial bootstrap.
+function CustomerSessionHydrate({ storeId }: { storeId: string }) {
+    const dispatch = useAppDispatch();
+    const { isAuthenticated, authChecked } = useAppSelector((state) => state.user);
+    const skipInitial = useRef(true);
+
+    useEffect(() => {
+        if (!authChecked) return;
+        if (skipInitial.current) {
+            skipInitial.current = false;
+            return;
+        }
+        if (isAuthenticated) {
+            dispatch(fetchCart({ storeId }));
+            dispatch(fetchWishlist({ storeId }));
+        }
+    }, [authChecked, isAuthenticated, dispatch, storeId]);
 
     return null;
 }
@@ -42,6 +70,7 @@ export default function Providers({ storeId, children }: ProvidersProps) {
     return (
         <Provider store={store}>
             {storeId && <AuthBootstrap storeId={storeId} />}
+            {storeId && <CustomerSessionHydrate storeId={storeId} />}
             {children}
         </Provider>
     );

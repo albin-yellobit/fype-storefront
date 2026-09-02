@@ -57,13 +57,14 @@ export default async function WishlistPage() {
                 footer={theme.footer}
                 navItems={navItems}
                 storeId={shop.shopId}
+                themeConfig={theme.themeConfig}
             />
 
             <AccountLayout title="Wishlist" storeId={shop.shopId}>
                 <WishlistView storeId={shop.shopId} />
             </AccountLayout>
 
-            <Footer footer={theme.footer} navbar={theme.navbar} footerText={theme.footerText} shopName={shop.shopName} footerPages={footerPages} />
+            <Footer footer={theme.footer} navbar={theme.navbar} footerText={theme.footerText} shopName={shop.shopName} footerPages={footerPages} themeConfig={theme.themeConfig} />
         </div>
     );
 }

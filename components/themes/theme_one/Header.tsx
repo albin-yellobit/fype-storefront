@@ -25,6 +25,7 @@ interface HeaderProps {
     footer?: FooterCustomization;
     navItems: NavItem[];
     storeId?: string;
+    themeConfig?: Record<string, unknown>;
 }
 
 const socialIconMap = {
@@ -90,10 +91,11 @@ export default function Header({
         }
     };
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
         setIsUserMenuOpen(false);
-        if (storeId) dispatch(logout({ storeId }));
+        if (storeId) await dispatch(logout({ storeId }));
         router.push("/");
+        router.refresh();
     };
 
     const renderNavbarBrand = (isMobile = false) => {

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { fetchAddresses, addAddress, updateAddress, deleteAddress, type Address } from "@/redux/slices/userSlice";
 import AddressCard from "./AddressCard";
-import AddressFormLoader from "./AddressFormLoader";
+import AddressFormModal from "@/components/checkout/AddressFormModal";
 
 interface AddressListProps {
     storeId: string;
@@ -15,43 +15,39 @@ interface AddressListProps {
 
 export default function AddressList({ storeId, selectionMode = false, selectedAddressId, onAddressSelect }: AddressListProps) {
     const dispatch = useAppDispatch();
-    const { addresses, addressesLoading, user } = useAppSelector((state) => state.user);
+    const { addresses, addressesLoading } = useAppSelector((state) => state.user);
 
-    const [showForm, setShowForm] = useState(false);
+    const [createOpen, setCreateOpen] = useState(false);
     const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         if (storeId) dispatch(fetchAddresses({ storeId }));
     }, [dispatch, storeId]);
 
-    // Auto-show form only if no addresses exist and not in selection mode —
-    // adjusted during render (comparing previous addresses.length/loading)
-    // rather than in an effect, same pattern used elsewhere in this codebase.
-    const [prevKey, setPrevKey] = useState(`${addresses.length}:${addressesLoading}`);
-    const key = `${addresses.length}:${addressesLoading}`;
-    if (key !== prevKey) {
-        setPrevKey(key);
-        if (!addressesLoading) {
-            if (addresses.length === 0 && !selectionMode) setShowForm(true);
-            else if (addresses.length > 0) setShowForm(false);
-        }
-    }
-
     const handleAddAddress = async (addressData: Omit<Address, "_id" | "addressId">) => {
-        await dispatch(addAddress({ storeId, address: addressData }));
-        setShowForm(false);
+        setSaving(true);
+        try {
+            await dispatch(addAddress({ storeId, address: addressData })).unwrap();
+            setCreateOpen(false);
 
-        if (selectionMode && addresses.length === 0) {
-            const newAddresses = await dispatch(fetchAddresses({ storeId })).unwrap();
-            if (newAddresses.length > 0 && onAddressSelect) onAddressSelect(newAddresses[0]);
+            if (selectionMode && addresses.length === 0) {
+                const newAddresses = await dispatch(fetchAddresses({ storeId })).unwrap();
+                if (newAddresses.length > 0 && onAddressSelect) onAddressSelect(newAddresses[0]);
+            }
+        } finally {
+            setSaving(false);
         }
     };
 
     const handleUpdateAddress = async (addressData: Omit<Address, "_id" | "addressId">) => {
-        if (editingAddress) {
-            await dispatch(updateAddress({ storeId, addressId: editingAddress.addressId, address: addressData }));
+        if (!editingAddress) return;
+        setSaving(true);
+        try {
+            await dispatch(updateAddress({ storeId, addressId: editingAddress.addressId, address: addressData })).unwrap();
             setEditingAddress(null);
-            setShowForm(false);
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -63,46 +59,16 @@ export default function AddressList({ storeId, selectionMode = false, selectedAd
 
     const handleEditClick = (address: Address) => {
         setEditingAddress(address);
-        setShowForm(true);
-    };
-
-    const handleCancelForm = () => {
-        setShowForm(false);
-        setEditingAddress(null);
     };
 
     const handleAddNewClick = () => {
-        setEditingAddress(null);
-        setShowForm(true);
+        setCreateOpen(true);
     };
 
     if (addressesLoading && addresses.length === 0) {
         return (
             <div className="flex justify-center items-center py-12">
                 <div className="animate-spin h-8 w-8 border-4 border-black border-t-transparent rounded-full"></div>
-            </div>
-        );
-    }
-
-    if (showForm) {
-        return (
-            <div className="space-y-4">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-semibold text-gray-900">{editingAddress ? "Edit Address" : "Add New Address"}</h2>
-                    {addresses.length > 0 && (
-                        <button onClick={handleCancelForm} className="text-sm text-gray-600 hover:text-gray-800">
-                            ← Back to addresses
-                        </button>
-                    )}
-                </div>
-                <div className="bg-white rounded-lg">
-                    <AddressFormLoader
-                        initialAddress={editingAddress}
-                        onSubmit={editingAddress ? handleUpdateAddress : handleAddAddress}
-                        onCancel={addresses.length > 0 ? handleCancelForm : undefined}
-                        userProfile={{ firstName: user?.firstName, lastName: user?.lastName, email: user?.email, phone: user?.phone }}
-                    />
-                </div>
             </div>
         );
     }
@@ -117,6 +83,7 @@ export default function AddressList({ storeId, selectionMode = false, selectedAd
                         Add Delivery Address
                     </button>
                 </div>
+                <AddressFormModal open={createOpen} saving={saving} onClose={() => setCreateOpen(false)} onSave={handleAddAddress} />
             </div>
         );
     }
@@ -152,6 +119,15 @@ export default function AddressList({ storeId, selectionMode = false, selectedAd
                     <p className="text-sm text-gray-600 text-center">Click on an address to select it for delivery</p>
                 </div>
             )}
+
+            <AddressFormModal open={createOpen} saving={saving} onClose={() => setCreateOpen(false)} onSave={handleAddAddress} />
+            <AddressFormModal
+                open={!!editingAddress}
+                initial={editingAddress}
+                saving={saving}
+                onClose={() => setEditingAddress(null)}
+                onSave={handleUpdateAddress}
+            />
         </div>
     );
 }

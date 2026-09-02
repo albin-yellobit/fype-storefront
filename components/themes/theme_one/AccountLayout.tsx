@@ -1,4 +1,5 @@
 import AccountSidebar from "./AccountSidebar";
+import RequireCustomerAuth from "@/components/shared/RequireCustomerAuth";
 
 interface AccountLayoutProps {
     title: string;
@@ -8,6 +9,7 @@ interface AccountLayoutProps {
 
 export default function AccountLayout({ title, storeId, children }: AccountLayoutProps) {
     return (
+        <RequireCustomerAuth>
         <main className="flex-grow container mx-auto px-4 py-8 flex flex-col md:flex-row gap-8 lg:gap-12">
             <div className="w-full md:w-[280px] shrink-0">
                 <div className="md:sticky md:top-24">
@@ -20,5 +22,6 @@ export default function AccountLayout({ title, storeId, children }: AccountLayou
                 {children}
             </div>
         </main>
+        </RequireCustomerAuth>
     );
 }

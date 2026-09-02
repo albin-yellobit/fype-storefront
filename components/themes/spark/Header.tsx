@@ -2,8 +2,14 @@
 
 import { useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
+import { ShoppingBag } from "lucide-react";
 import type { SparkAnnouncementBarBlock, SparkHeaderSettings } from "./sparkConfig";
+import { useAppSelector } from "@/redux/hooks";
+import { cartTotalCount, useSparkCart } from "./SparkCartContext";
+import AuthModal from "@/components/shared/AuthModal";
+import { getCurrentStoreId } from "@/lib/client-store-context";
 
 interface SparkHeaderProps {
     header: SparkHeaderSettings;
@@ -63,6 +69,12 @@ export default function Header({
     const [currentAnnouncement, setCurrentAnnouncement] = useState(0);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
+    const [authOpen, setAuthOpen] = useState(false);
+    const router = useRouter();
+    const { cart, isAuthenticated } = useAppSelector((state) => state.user);
+    const { openCart } = useSparkCart();
+    const count = cartTotalCount(cart);
+    const storeId = getCurrentStoreId() ?? undefined;
 
     useEffect(() => {
         if (!heroOverlap) return;
@@ -133,17 +145,30 @@ export default function Header({
           };
 
     const logoContent = (
-        <Link href="/" className="flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-2 sm:gap-3 min-w-0">
             {(logoType === "Logo Image" || logoType === "Text + Logo Image") && logoUrl && (
-                <span className="flex items-center shrink-0 overflow-hidden" style={{ width: `${logoWidth}px` }}>
+                <span className="flex items-center shrink-0 overflow-hidden max-w-[36vw] sm:max-w-none" style={{ width: `${logoWidth}px` }}>
                     {/* eslint-disable-next-line @next/next/no-img-element -- store-uploaded logo, arbitrary remote origin not worth a next/image remotePatterns entry */}
-                    <img src={logoUrl} className="w-full h-auto max-h-12 object-contain" alt={logoText || "Logo"} />
+                    <img src={logoUrl} className="w-full h-auto max-h-10 sm:max-h-12 object-contain" alt={logoText || "Logo"} />
                 </span>
             )}
             {(logoType === "Text Only" || logoType === "Text + Logo Image") && (
-                <span className="font-black tracking-tighter text-2xl hover:opacity-80 transition-opacity">{logoText}</span>
+                <span className="font-black tracking-tighter text-xl sm:text-2xl hover:opacity-80 transition-opacity truncate max-w-[42vw] md:max-w-none">
+                    {logoText}
+                </span>
             )}
         </Link>
+    );
+
+    const menuButton = (
+        <button
+            type="button"
+            onClick={() => setMobileMenuOpen(true)}
+            aria-label="Open menu"
+            className={`transition-colors hover:opacity-70 shrink-0 ${menuStyle === "Drawer" ? "block" : "md:hidden"}`}
+        >
+            <span className="material-symbols-outlined text-2xl">menu</span>
+        </button>
     );
 
     const navContent = (
@@ -157,16 +182,26 @@ export default function Header({
     );
 
     const iconLinks = (
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-3 sm:gap-5 shrink-0">
             <Link href="/products" className="hover:opacity-70 transition-opacity">
                 <span className="material-symbols-outlined text-xl">search</span>
             </Link>
-            <Link href="/accounts" className="hover:opacity-70 transition-opacity">
+            <button
+                type="button"
+                onClick={() => (isAuthenticated ? router.push("/accounts") : setAuthOpen(true))}
+                className="hover:opacity-70 transition-opacity"
+                aria-label={isAuthenticated ? "Account" : "Sign in"}
+            >
                 <span className="material-symbols-outlined text-xl">person</span>
-            </Link>
-            <Link href="/cart" className="hover:opacity-70 transition-opacity">
-                <span className="material-symbols-outlined text-xl">shopping_bag</span>
-            </Link>
+            </button>
+            <button type="button" onClick={openCart} className="hover:opacity-70 transition-opacity relative" aria-label="Open cart">
+                <ShoppingBag size={20} strokeWidth={1.5} />
+                {count > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#111] text-white text-[10px] font-bold flex items-center justify-center rounded-full">
+                        {count}
+                    </span>
+                )}
+            </button>
         </div>
     );
 
@@ -276,19 +311,11 @@ export default function Header({
 
             {/* HEADER */}
             <header className={headerClass} style={headerStyle}>
-                <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between min-w-0 gap-3">
                     {logoPosition === "Left" ? (
                         <>
-                            <div className="flex items-center gap-6">
-                                {menuStyle === "Drawer" && (
-                                    <button
-                                        onClick={() => setMobileMenuOpen(true)}
-                                        aria-label="Open menu"
-                                        className="transition-colors hover:opacity-70 block"
-                                    >
-                                        <span className="material-symbols-outlined text-2xl">menu</span>
-                                    </button>
-                                )}
+                            <div className="flex items-center gap-3 sm:gap-6 min-w-0">
+                                {menuButton}
                                 {logoContent}
                             </div>
 
@@ -298,20 +325,12 @@ export default function Header({
                         </>
                     ) : (
                         <>
-                            <div className="flex items-center gap-6 flex-1 justify-start">
-                                {menuStyle === "Drawer" && (
-                                    <button
-                                        onClick={() => setMobileMenuOpen(true)}
-                                        aria-label="Open menu"
-                                        className="transition-colors hover:opacity-70 block"
-                                    >
-                                        <span className="material-symbols-outlined text-2xl">menu</span>
-                                    </button>
-                                )}
+                            <div className="flex items-center gap-3 sm:gap-6 flex-1 justify-start min-w-0">
+                                {menuButton}
                                 {menuStyle === "Tabs" && navContent}
                             </div>
 
-                            <div className="flex items-center justify-center flex-1">{logoContent}</div>
+                            <div className="flex items-center justify-center flex-1 min-w-0">{logoContent}</div>
 
                             <div className="flex-1 flex justify-end">{iconLinks}</div>
                         </>
@@ -356,6 +375,7 @@ export default function Header({
                     </>
                 )}
             </AnimatePresence>
+            <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} storeId={storeId} shopName={logoText} platformName="Fype" />
         </div>
     );
 }

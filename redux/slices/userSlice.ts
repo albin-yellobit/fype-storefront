@@ -9,6 +9,8 @@ import {
     clearAuthToken,
     setGuestId,
     getApiErrorMessage,
+    markSignedOut,
+    clearSignedOutSession,
 } from "@/lib/client-api";
 import type { ApiResponse } from "@/types/api";
 import { trackShipment } from "@/lib/tracking-api";
@@ -26,6 +28,7 @@ export interface User {
     isPhoneVerified: boolean;
     isEmailVerified: boolean;
     requiresRegistration?: boolean;
+    isNew?: boolean;
 }
 
 export interface Address {
@@ -140,6 +143,7 @@ interface UserState {
     user: User | null;
     isAuthenticated: boolean;
     authLoading: boolean;
+    authChecked: boolean;
     authError: string | null;
 
     cart: Cart | null;
@@ -172,6 +176,7 @@ const initialState: UserState = {
     user: null,
     isAuthenticated: false,
     authLoading: false,
+    authChecked: false,
     authError: null,
 
     cart: null,
@@ -272,6 +277,7 @@ export const verifyOTP = createAsyncThunk(
 
             const { customer, isNew, requiresRegistration, token } = response.data.data;
 
+            clearSignedOutSession();
             // Cross-origin (custom domain) clients get the token in the body;
             // same-origin clients get it via httpOnly cookie (absent here, safe no-op)
             if (token) {
@@ -352,13 +358,18 @@ export const resendOTP = createAsyncThunk(
 
 export const logout = createAsyncThunk("user/logout", async ({ storeId }: { storeId: string }) => {
     try {
+        // Must still be authenticated so the API can clear its customer_token cookie.
         await postApi(`/customer/${storeId}/logout`, {}, { withCredentials: true });
     } catch {
-        // Even if server logout fails, clear local state
-    } finally {
-        clearAuthToken();
-        clearGuestId();
-        fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+        // Local session is cleared below regardless.
+    }
+    markSignedOut();
+    clearAuthToken();
+    clearGuestId();
+    try {
+        await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    } catch {
+        // Storefront cookie clear is best-effort.
     }
     return null;
 });
@@ -770,6 +781,10 @@ const userSlice = createSlice({
             state.user = action.payload;
             state.isAuthenticated = !!action.payload;
         },
+        markAuthChecked: (state) => {
+            state.authChecked = true;
+            state.authLoading = false;
+        },
     },
     extraReducers: (builder) => {
         // Get Platform
@@ -823,9 +838,13 @@ const userSlice = createSlice({
             })
             .addCase(verifyOTP.fulfilled, (state, action) => {
                 state.authLoading = false;
-                state.user = action.payload.customer;
+                state.authChecked = true;
+                state.user = {
+                    ...action.payload.customer,
+                    requiresRegistration: action.payload.requiresRegistration,
+                    isNew: action.payload.isNew,
+                };
                 state.isAuthenticated = true;
-                if (state.user) state.user.requiresRegistration = action.payload.requiresRegistration;
             })
             .addCase(verifyOTP.rejected, (state, action) => {
                 state.authLoading = false;
@@ -841,7 +860,10 @@ const userSlice = createSlice({
             .addCase(completeRegistration.fulfilled, (state, action) => {
                 state.authLoading = false;
                 state.user = action.payload;
-                if (state.user) state.user.requiresRegistration = false;
+                if (state.user) {
+                    state.user.requiresRegistration = false;
+                    state.user.isNew = false;
+                }
             })
             .addCase(completeRegistration.rejected, (state, action) => {
                 state.authLoading = false;
@@ -849,24 +871,37 @@ const userSlice = createSlice({
             });
 
         // Logout
-        builder.addCase(logout.fulfilled, (state) => {
+        const clearSession = (state: UserState) => {
             state.user = null;
             state.isAuthenticated = false;
+            state.authLoading = false;
+            state.authChecked = true;
             state.cart = null;
             state.wishlist = [];
             state.wishlistLoaded = false;
-        });
+            state.addresses = [];
+            state.orders = [];
+        };
+        builder.addCase(logout.pending, clearSession);
+        builder.addCase(logout.fulfilled, clearSession);
+        builder.addCase(logout.rejected, clearSession);
 
         // Fetch Profile
         builder
+            .addCase(fetchUserProfile.pending, (state) => {
+                state.authLoading = true;
+            })
             .addCase(fetchUserProfile.fulfilled, (state, action) => {
                 state.authLoading = false;
+                state.authChecked = true;
                 state.user = action.payload;
                 state.isAuthenticated = true;
             })
             .addCase(fetchUserProfile.rejected, (state) => {
                 state.authLoading = false;
-                // Don't set authError on profile fetch failure — avoids showing an error on initial load
+                state.authChecked = true;
+                state.isAuthenticated = false;
+                state.user = null;
             });
 
         // Update Profile
@@ -1089,5 +1124,5 @@ const userSlice = createSlice({
     },
 });
 
-export const { clearAuthError, clearCartError, clearOrdersError, clearTrackingError, setUser } = userSlice.actions;
+export const { clearAuthError, clearCartError, clearOrdersError, clearTrackingError, setUser, markAuthChecked } = userSlice.actions;
 export default userSlice.reducer;

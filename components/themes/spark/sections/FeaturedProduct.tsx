@@ -8,6 +8,7 @@ import { addToCart, addToGuestCart, fetchCart, fetchGuestCart } from "@/redux/sl
 import { calculateProductTax } from "@/utils/taxCalculator";
 import type { SparkFeaturedProductSettings } from "../sparkConfig";
 import type { ProductDetail, ProductVariant, TaxSettings } from "@/types/storefront";
+import { useSparkCart } from "../SparkCartContext";
 
 type FeaturedProductDetail = ProductDetail & { variants?: ProductVariant[] };
 
@@ -60,6 +61,7 @@ function placeholderProduct(): FeaturedProductDetail {
 export default function FeaturedProduct({ settings, storeId, globalTax, initialProduct = null, isEditorPreview = false }: FeaturedProductProps) {
     const dispatch = useAppDispatch();
     const { isAuthenticated } = useAppSelector((state) => state.user);
+    const { openCart } = useSparkCart();
     const [product, setProduct] = useState<FeaturedProductDetail | null>(initialProduct);
     const [quantity, setQuantity] = useState(1);
     const [adding, setAdding] = useState(false);
@@ -185,14 +187,17 @@ export default function FeaturedProduct({ settings, storeId, globalTax, initialP
         setAdding(true);
         try {
             if (isAuthenticated) {
-                await dispatch(addToCart({ storeId, productId: displayProduct.productId, quantity }));
+                await dispatch(addToCart({ storeId, productId: displayProduct.productId, quantity })).unwrap();
                 dispatch(fetchCart({ storeId }));
             } else {
-                await dispatch(addToGuestCart({ storeId, productId: displayProduct.productId, quantity }));
+                await dispatch(addToGuestCart({ storeId, productId: displayProduct.productId, quantity })).unwrap();
                 dispatch(fetchGuestCart({ storeId }));
             }
+            openCart();
             setAdded(true);
             setTimeout(() => setAdded(false), 1500);
+        } catch {
+            // cart error surfaces via redux
         } finally {
             setAdding(false);
         }

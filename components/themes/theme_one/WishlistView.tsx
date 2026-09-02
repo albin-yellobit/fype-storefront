@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getApi } from "@/lib/client-api";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { removeFromWishlist, addToCart } from "@/redux/slices/userSlice";
+import { fetchWishlist, removeFromWishlist, addToCart } from "@/redux/slices/userSlice";
 import type { StorefrontProduct } from "@/types/storefront";
 
 const DEFAULT_PRODUCT_IMAGE =
@@ -18,10 +18,14 @@ interface WishlistViewProps {
 export default function WishlistView({ storeId }: WishlistViewProps) {
     const router = useRouter();
     const dispatch = useAppDispatch();
-    const { wishlist, wishlistLoading } = useAppSelector((state) => state.user);
+    const { wishlist, wishlistLoading, isAuthenticated } = useAppSelector((state) => state.user);
 
     const [products, setProducts] = useState<StorefrontProduct[]>([]);
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (storeId && isAuthenticated) dispatch(fetchWishlist({ storeId }));
+    }, [dispatch, storeId, isAuthenticated]);
 
     useEffect(() => {
         // Nothing to fetch — render checks wishlist.length directly for the

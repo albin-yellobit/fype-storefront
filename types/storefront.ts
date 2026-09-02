@@ -100,6 +100,7 @@ export interface ShopIdentity {
     subdomain?: string;
     themeId?: string;
     isActive: boolean;
+    isPublished?: boolean;
     settings?: {
         tax?: TaxSettings;
         marketing?: {
@@ -217,4 +218,5 @@ export interface ProductDetail {
         available: number;
         continueSelling?: boolean;
     } | null;
+    createdAt?: string;
 }

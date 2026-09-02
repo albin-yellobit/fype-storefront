@@ -73,6 +73,7 @@ export default async function CmsPage({ params }: CmsPageProps) {
                 footer={theme.footer}
                 navItems={navItems}
                 storeId={shop.shopId}
+                themeConfig={theme.themeConfig}
             />
 
             {page ? (
@@ -81,7 +82,7 @@ export default async function CmsPage({ params }: CmsPageProps) {
                 <div className="flex justify-center items-center min-h-screen text-black/60">Page not found</div>
             )}
 
-            <Footer footer={theme.footer} navbar={theme.navbar} footerText={theme.footerText} shopName={shop.shopName} footerPages={footerPages} />
+            <Footer footer={theme.footer} navbar={theme.navbar} footerText={theme.footerText} shopName={shop.shopName} footerPages={footerPages} themeConfig={theme.themeConfig} />
         </div>
     );
 }
