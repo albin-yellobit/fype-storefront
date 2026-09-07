@@ -10,6 +10,7 @@ import { useScrollDirection } from "@/hooks/useScrollDirection";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { logout } from "@/redux/slices/userSlice";
 import type { FooterCustomization, NavbarCustomization } from "@/types/storefront";
+import { isEditorPreview } from "@/lib/editor-preview";
 
 export interface NavItem {
     label: string;
@@ -84,6 +85,7 @@ export default function Header({
     const socialLinks = getSocialLinks();
 
     const handleUserIconClick = () => {
+        if (isEditorPreview()) return;
         if (isAuthenticated) {
             router.push("/accounts");
         } else {

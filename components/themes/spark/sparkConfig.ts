@@ -707,7 +707,7 @@ export function mergeSparkConfig(base: SparkConfig, override?: SparkConfigOverri
     };
 }
 
-// Every Spark page builds its header nav the same way: the two fixed,
+// Every Spark page builds its header nav the same way: the three fixed,
 // always-real storefront routes first, then whatever generic pages the
 // merchant has created — so the bar is never empty on a fresh store and
 // never loses Shop/Collections once a custom page exists (the old
@@ -716,6 +716,7 @@ export function mergeSparkConfig(base: SparkConfig, override?: SparkConfigOverri
 // completely as soon as navPages was non-empty).
 export function buildSparkNavItems(navPages: Page[]): Array<{ label: string; href: string }> {
     return [
+        { label: "Home", href: "/" },
         { label: "Shop", href: "/products" },
         { label: "Collections", href: "/collections" },
         ...navPages
@@ -1196,7 +1197,7 @@ export const sparkDefaultConfig: SparkConfig = {
                             title: "What is your return policy?",
                             content:
                                 "We accept returns within 30 days of delivery. Items must be in their original condition and packaging. Please note that return shipping costs are the responsibility of the customer.",
-                            open_by_default: false,
+                            open_by_default: true,
                         },
                     },
                     {

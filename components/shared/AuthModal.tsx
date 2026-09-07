@@ -11,6 +11,7 @@ import { PhoneInput } from "@/components/checkout/ui/PhoneInput";
 import { splitName } from "@/components/checkout/checkoutUtils";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { sendOTP, verifyOTP, completeRegistration, clearAuthError, getPlatform } from "@/redux/slices/userSlice";
+import { isEditorPreview } from "@/lib/editor-preview";
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -154,7 +155,7 @@ export default function AuthModal({ isOpen, onClose, storeId, shopName = "Store"
         }
     }
 
-    if (!isOpen) return null;
+    if (!isOpen || isEditorPreview()) return null;
 
     const handleMethodSelect = (selected: Method) => {
         setMethod(selected);

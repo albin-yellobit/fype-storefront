@@ -246,7 +246,7 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
         ) : null;
 
     return (
-        <div className="bg-white text-black min-h-screen pb-20 overflow-x-hidden">
+        <div className="bg-white text-black min-h-screen pb-20 overflow-x-clip">
             <SparkHeaderShell
                 config={liveConfig}
                 navItems={navigation}

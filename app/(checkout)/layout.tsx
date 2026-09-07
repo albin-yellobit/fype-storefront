@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { getApiBaseUrl, getShopByDomain } from "@/lib/storefront-api";
+import { enforceStorefrontPassword } from "@/lib/enforce-storefront-password";
 import Providers from "@/components/shared/Providers";
 import "./checkout.css";
 
@@ -13,6 +14,7 @@ export default async function CheckoutLayout({ children }: { children: React.Rea
 
     const apiBaseUrl = await getApiBaseUrl();
     const shop = await getShopByDomain(apiBaseUrl, domain);
+    await enforceStorefrontPassword(shop);
 
     return (
         <Providers storeId={shop?.shopId}>

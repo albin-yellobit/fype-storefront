@@ -59,7 +59,7 @@ export default function SparkHeaderShell({
           }`}
         >
           <span
-            className={`absolute -top-px left-0 bg-blue-500 text-white text-[11px] font-medium px-2 py-0.5 transition-opacity ${
+            className={`absolute top-full left-0 mt-1 bg-blue-500 text-white text-[11px] font-medium px-2 py-0.5 transition-opacity ${
               activeBlockId ? "opacity-100" : "opacity-0 group-hover:opacity-100"
             }`}
           >

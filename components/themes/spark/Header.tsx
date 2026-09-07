@@ -48,6 +48,15 @@ function hexToRgba(hex: string, alpha: number): string {
     return `rgba(${parseInt(r, 16)}, ${parseInt(g, 16)}, ${parseInt(b, 16)}, ${alpha})`;
 }
 
+function resolveAnnouncementLink(value: string): { href: string; external: boolean } {
+    const href = value.trim();
+    if (href === "/shop" || href === "/shops") return { href: "/products", external: false };
+    const external = /^(https?:\/\/|\/\/|www\.)/i.test(href) || /^[\w-]+(?:\.[\w-]+)+(?:\/|$)/i.test(href);
+    if (!external) return { href, external: false };
+    if (/^https?:\/\//i.test(href)) return { href, external: true };
+    return { href: `https://${href.replace(/^\/\//, "")}`, external: true };
+}
+
 // Full port of Fype-E-Commerce-UI's sections/Header.tsx (read-only design
 // reference) — every section setting (Logo Type/Position, Menu Style,
 // Sticky Header, Glass Effect, Background/Foreground Color) and every
@@ -90,8 +99,12 @@ export default function Header({
     // to numBlocks via an effect, so there's never an out-of-bounds frame.
     const activeIndex = numBlocks > 0 ? currentAnnouncement % numBlocks : 0;
     const activeBlockSettings = announcementBlocks[activeIndex]?.settings;
-    const isScroll = activeBlockSettings?.text_animation === "Scroll";
-    const appearAfter = activeBlockSettings?.appear_after || 5;
+    // Animation and rotation timing are announcement-bar-wide settings. The
+    // editor propagates changes to every block, while the first block keeps
+    // older saved drafts deterministic if their values differ.
+    const sharedAnimationSettings = announcementBlocks[0]?.settings;
+    const isScroll = sharedAnimationSettings?.text_animation === "Scroll";
+    const appearAfter = sharedAnimationSettings?.appear_after || 5;
 
     useEffect(() => {
         if (numBlocks <= 1 || isScroll) return;
@@ -101,9 +114,11 @@ export default function Header({
         return () => clearTimeout(timer);
     }, [numBlocks, isScroll, appearAfter, activeIndex]);
 
-    const speedSetting = activeBlockSettings?.speed || 20;
+    const speedSetting = sharedAnimationSettings?.speed || 20;
     const scrollDuration = `${speedSetting * REPEAT_COUNT}s`;
 
+    // Colors remain block-specific and follow whichever slide is currently
+    // visible. Scroll mode applies each block's colors directly to its item.
     const containerBgColor = isScroll ? "transparent" : activeBlockSettings?.background_color || "#111111";
     const containerTextColor = isScroll ? "inherit" : activeBlockSettings?.text_color || "#ffffff";
 
@@ -118,6 +133,27 @@ export default function Header({
         foreground_color: fgColor,
     } = header;
 
+    // Resolve the configured navigation here so every page uses the same
+    // links. Home previously resolved this separately, while inner pages
+    // rendered only the fallback Shop/Collections items.
+    const displayNavItems = header.navigation?.length
+        ? header.navigation.reduce((items, item) => {
+              const lowerItem = item.toLowerCase();
+              if (lowerItem === "home" && !items.some((entry) => entry.href === "/")) items.push({ label: "Home", href: "/" });
+              else if (lowerItem === "shop" && !items.some((entry) => entry.href === "/products")) items.push({ label: "Shop", href: "/products" });
+              else if (lowerItem === "collections" && !items.some((entry) => entry.href === "/collections")) items.push({ label: "Collections", href: "/collections" });
+              else if (lowerItem.startsWith("page:")) {
+                  const [pagePart, ...titleParts] = item.split("|");
+                  const slug = pagePart.slice(5);
+                  const serverItem = navItems.find((entry) => entry.href === `/${slug}`);
+                  items.push({ label: titleParts.join("|") || serverItem?.label || slug, href: serverItem?.href || `/${slug}` });
+              } else if (!items.some((entry) => entry.label.toLowerCase() === lowerItem)) {
+                  items.push({ label: item, href: `/${item.toLowerCase().replace(/\s+/g, "-")}` });
+              }
+              return items;
+          }, [] as Array<{ label: string; href: string }>)
+        : navItems;
+
     // Only the home page opts into overlapping the hero (heroOverlap), and
     // only makes sense combined with both settings that make the effect
     // legible: Sticky Header (so it stays put as you scroll past the hero
@@ -128,7 +164,11 @@ export default function Header({
     const overlapActive = heroOverlap && glassEffect && isSticky;
     const isTransparent = overlapActive && !isScrolled;
 
-    const headerClass = `z-40 transition-all duration-300 border-b ${!overlapActive && isSticky ? "sticky top-0" : ""}`;
+    // Sticky positioning is owned by SparkHeaderShell's outer wrapper so the
+    // header can stay visual-only here. Keeping the sticky class off this
+    // inner element avoids nested-sticky behavior that can break when the
+    // header is opaque instead of glassy.
+    const headerClass = "z-40 transition-all duration-300 border-b";
     const headerStyle: CSSProperties = isTransparent
         ? { backgroundColor: "transparent", color: "#ffffff", borderColor: "rgba(255,255,255,0.15)" }
         : {
@@ -173,7 +213,7 @@ export default function Header({
 
     const navContent = (
         <nav className="hidden md:flex items-center gap-8 text-sm font-semibold tracking-wide uppercase">
-            {navItems.map((item) => (
+            {displayNavItems.map((item) => (
                 <Link key={item.label} href={item.href} className="opacity-80 hover:opacity-100 transition-opacity">
                     {item.label}
                 </Link>
@@ -188,7 +228,11 @@ export default function Header({
             </Link>
             <button
                 type="button"
-                onClick={() => (isAuthenticated ? router.push("/accounts") : setAuthOpen(true))}
+                onClick={() => {
+                    if (isEditorPreview) return;
+                    if (isAuthenticated) router.push("/accounts");
+                    else setAuthOpen(true);
+                }}
                 className="hover:opacity-70 transition-opacity"
                 aria-label={isAuthenticated ? "Account" : "Sign in"}
             >
@@ -206,15 +250,20 @@ export default function Header({
     );
 
     const renderAnnouncementContent = (block: SparkAnnouncementBarBlock) => {
-        const link = block.settings.link;
+        const link = block.settings.link ? resolveAnnouncementLink(block.settings.link) : null;
         const content = (
             <div
                 dangerouslySetInnerHTML={{ __html: block.settings.text || "Welcome to our store" }}
                 className="[&_p]:inline [&_p]:m-0"
             />
         );
-        const inner = link ? (
-            <a href={link} className="hover:opacity-80 transition-opacity">
+        const inner = link?.href ? (
+            <a
+                href={link.href}
+                target={link.external ? "_blank" : undefined}
+                rel={link.external ? "noreferrer noopener" : undefined}
+                className="hover:opacity-80 transition-opacity"
+            >
                 {content}
             </a>
         ) : (
@@ -235,7 +284,7 @@ export default function Header({
                 }}
             >
                 <div
-                    className={`absolute top-full left-0 mt-1 bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 whitespace-nowrap z-50 transition-opacity ${
+                        className={`absolute top-full left-0 mt-1 bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 whitespace-nowrap z-[100] pointer-events-none transition-opacity ${
                         isActive ? "opacity-100" : "opacity-0 group-hover/block:opacity-100"
                     }`}
                 >
@@ -264,11 +313,12 @@ export default function Header({
                                     aria-hidden={marqueeIndex === 1}
                                 >
                                     {Array(REPEAT_COUNT)
-                                        .fill(announcementBlocks)
+                                        .fill(isEditorPreview ? [announcementBlocks[activeIndex]] : announcementBlocks)
                                         .flat()
+                                        .filter(Boolean)
                                         .map((block: SparkAnnouncementBarBlock, index: number) => (
                                             <div
-                                                key={`${marqueeIndex}_${block.id}_${index}`}
+                                                key={`${marqueeIndex}_${block.id}_${index}_${block.settings.text_animation}_${block.settings.appear_after}_${block.settings.speed}`}
                                                 className="px-8 shrink-0 flex items-center h-full transition-colors duration-500"
                                                 style={{
                                                     backgroundColor: block.settings.background_color || "#111111",
@@ -292,7 +342,7 @@ export default function Header({
                                     if (index !== activeIndex) return null;
                                     return (
                                         <motion.div
-                                            key={block.id}
+                                            key={`${block.id}_${block.settings.text_animation}_${block.settings.appear_after}_${block.settings.speed}`}
                                             initial={{ opacity: 0, x: 100 }}
                                             animate={{ opacity: 1, x: 0 }}
                                             exit={{ opacity: 0, x: -100 }}
@@ -365,7 +415,7 @@ export default function Header({
                                 </button>
                             </div>
                             <nav className="flex flex-col p-5 gap-4 text-sm font-semibold tracking-wide uppercase">
-                                {navItems.map((item) => (
+                                {displayNavItems.map((item) => (
                                     <Link key={item.label} href={item.href} onClick={() => setMobileMenuOpen(false)} className="opacity-80 hover:opacity-100">
                                         {item.label}
                                     </Link>
@@ -375,7 +425,9 @@ export default function Header({
                     </>
                 )}
             </AnimatePresence>
-            <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} storeId={storeId} shopName={logoText} platformName="Fype" />
+            {!isEditorPreview && (
+                <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} storeId={storeId} shopName={logoText} platformName="Fype" />
+            )}
         </div>
     );
 }

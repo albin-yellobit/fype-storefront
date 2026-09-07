@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CartPageProps } from "@/components/themes/registry";
-import Header from "./Header";
+import SparkHeaderShell from "./SparkHeaderShell";
 import { buildSparkNavItems, sparkDefaultConfig } from "./sparkConfig";
 import AuthModal from "@/components/shared/AuthModal";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
@@ -20,6 +20,20 @@ export default function CartPage({ shop, navPages, bestSellerProducts }: CartPag
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
     const navItems = buildSparkNavItems(navPages);
+    const config = {
+        ...sparkDefaultConfig,
+        sections: {
+            ...sparkDefaultConfig.sections,
+            announcement_bar: {
+                ...sparkDefaultConfig.sections.announcement_bar,
+                settings: { ...sparkDefaultConfig.sections.announcement_bar.settings, show: false },
+            },
+            header: {
+                ...sparkDefaultConfig.sections.header,
+                settings: { ...sparkDefaultConfig.sections.header.settings, logo_text: shop.shopName },
+            },
+        },
+    };
 
     const handleQuantityChange = (item: CartItem, newQuantity: number) => {
         if (newQuantity < 1) return;
@@ -48,10 +62,10 @@ export default function CartPage({ shop, navPages, bestSellerProducts }: CartPag
 
     return (
         <div className="bg-white text-black min-h-screen">
-            <Header
-                header={{ ...sparkDefaultConfig.sections.header.settings, logo_text: shop.shopName }}
+            <SparkHeaderShell
+                config={config}
                 navItems={navItems}
-                announcementBlocks={[]}
+                shop={shop}
             />
 
             <div className="max-w-6xl mx-auto px-6 py-12 md:py-16">

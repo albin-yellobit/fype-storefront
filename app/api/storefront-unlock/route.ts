@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { getApiBaseUrl } from "@/lib/api-base-url";
 import { STOREFRONT_UNLOCK_COOKIE, STOREFRONT_UNLOCK_MAX_AGE } from "@/lib/storefront-gate";
 
 export async function POST(request: NextRequest) {
@@ -13,12 +13,14 @@ export async function POST(request: NextRequest) {
     const host = request.headers.get("host") ?? "";
     const domain = host.split(":")[0];
 
-    const { env } = await getCloudflareContext({ async: true });
-    if (!env.API_BASE_URL) {
+    let apiBaseUrl: string;
+    try {
+        apiBaseUrl = await getApiBaseUrl();
+    } catch {
         return NextResponse.json({ success: false, message: "Storefront is not configured" }, { status: 500 });
     }
 
-    const res = await fetch(`${env.API_BASE_URL}/commerce/shops/unlock-storefront`, {
+    const res = await fetch(`${apiBaseUrl}/commerce/shops/unlock-storefront`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ domain, password }),

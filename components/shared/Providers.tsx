@@ -7,12 +7,17 @@ import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { setCurrentStoreId } from "@/lib/client-store-context";
 import { isSignedOutSession, getAuthToken } from "@/lib/client-api";
 import { fetchUserProfile, fetchCart, fetchGuestCart, fetchWishlist, markAuthChecked } from "@/redux/slices/userSlice";
+import { isEditorPreview } from "@/lib/editor-preview";
 
 function AuthBootstrap({ storeId }: { storeId: string }) {
     const dispatch = useAppDispatch();
 
     useEffect(() => {
         (async () => {
+            if (isEditorPreview()) {
+                dispatch(markAuthChecked());
+                return;
+            }
             if (isSignedOutSession() || !getAuthToken()) {
                 dispatch(markAuthChecked());
                 dispatch(fetchGuestCart({ storeId }));
@@ -46,6 +51,7 @@ function CustomerSessionHydrate({ storeId }: { storeId: string }) {
             skipInitial.current = false;
             return;
         }
+        if (isEditorPreview()) return;
         if (isAuthenticated) {
             dispatch(fetchCart({ storeId }));
             dispatch(fetchWishlist({ storeId }));

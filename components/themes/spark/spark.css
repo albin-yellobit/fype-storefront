@@ -6,7 +6,10 @@
     --spark-accent-font: "Playfair Display", serif;
     --page-width: 1280px;
     font-family: var(--spark-body-font);
-    overflow-x: hidden;
+    /* Clip horizontal overflow without creating a scroll container; the
+       latter prevents descendants using position: sticky from sticking to
+       the document viewport. */
+    overflow-x: clip;
 }
 
 .spark-theme-root h1,

@@ -233,55 +233,6 @@ export default function SparkHome({
         }
         : undefined;
 
-    const getResolvedNavItems = () => {
-        if (!header.settings.navigation || header.settings.navigation.length === 0) {
-            return navItems;
-        }
-
-        const pagesConfig = liveConfig.theme_settings.pages as any;
-        const seen = new Set<string>();
-
-        return header.settings.navigation.reduce((acc, item) => {
-            const lowerItem = item.toLowerCase();
-
-            // Deduplicate to avoid React key warnings and visual repetition
-            if (seen.has(lowerItem)) return acc;
-            seen.add(lowerItem);
-
-            if (lowerItem === "home") {
-                acc.push({ label: pagesConfig?.home_navbar_label || "Home", href: "/" });
-                return acc;
-            }
-            if (lowerItem === "shop") {
-                acc.push({ label: pagesConfig?.shop_navbar_label || "Shop", href: "/products" });
-                return acc;
-            }
-            if (lowerItem === "collections") {
-                acc.push({ label: pagesConfig?.collections_navbar_label || "Collections", href: "/collections" });
-                return acc;
-            }
-            if (lowerItem.startsWith("page:")) {
-                const parts = item.split("|");
-                const slug = parts[0].slice(5);
-                const title = parts.length > 1 ? parts.slice(1).join("|") : slug;
-
-                const serverItem = navItems.find((n) => n.href === `/${slug}`);
-                if (serverItem) {
-                    acc.push({ label: title || serverItem.label, href: serverItem.href });
-                    return acc;
-                }
-
-                acc.push({ label: title, href: `/${slug}` });
-                return acc;
-            }
-
-            acc.push({ label: item, href: `/${item.toLowerCase().replace(/\\s+/g, "-")}` });
-            return acc;
-        }, [] as Array<{ label: string; href: string }>);
-    };
-
-    const resolvedNavItems = getResolvedNavItems();
-
     const selectSection = (sectionId: string) => {
         setActiveSection(sectionId);
         setActiveBlock(null);
@@ -468,7 +419,7 @@ export default function SparkHome({
         >
             <SparkHeaderShell
                 config={liveConfig}
-                navItems={resolvedNavItems}
+                navItems={navItems}
                 shop={shop}
                 isEditorPreview={isEditorPreview}
                 activeBlockId={activeBlock?.sectionId === "header" ? activeBlock.id : null}

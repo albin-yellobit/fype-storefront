@@ -2,7 +2,9 @@ import { headers } from "next/headers";
 import Script from "next/script";
 import { loadTheme, resolveThemeSlug } from "@/lib/theme";
 import { getApiBaseUrl, getShopByDomain, getTheme } from "@/lib/storefront-api";
+import { enforceStorefrontPassword } from "@/lib/enforce-storefront-password";
 import Providers from "@/components/shared/Providers";
+import EditorPreviewNavigationLock from "@/components/shared/EditorPreviewNavigationLock";
 
 // Same validation the SPA used (App.tsx) before building either script — only
 // a plausible pixel/container id ever gets interpolated into injected JS.
@@ -17,6 +19,7 @@ export default async function StorefrontLayout({ children }: { children: React.R
 
     const apiBaseUrl = await getApiBaseUrl();
     const shop = await getShopByDomain(apiBaseUrl, domain);
+    await enforceStorefrontPassword(shop);
     // The live Theme document's templateId (not shop.themeId, which is that
     // document's own instance id, e.g. "THEME-xxx") is the real registry
     // slug — see ThemeCustomization.templateId. Without this, the outer
@@ -56,6 +59,7 @@ export default async function StorefrontLayout({ children }: { children: React.R
                 </Script>
             )}
             <Providers storeId={shop?.shopId}>
+                <EditorPreviewNavigationLock />
                 <ThemeLayout shopName={shop?.shopName} storeId={shop?.shopId}>
                     {children}
                 </ThemeLayout>

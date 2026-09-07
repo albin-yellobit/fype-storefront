@@ -27,6 +27,9 @@ export async function middleware(request: NextRequest) {
         requestHeaders.set("x-store-domain", tenant.storeDomain);
         requestHeaders.set("x-theme-id", tenant.themeId);
     }
+    if (request.nextUrl.searchParams.get("editorPreview") === "1") {
+        requestHeaders.set("x-editor-preview", "1");
+    }
 
     if (tenant && tenant.isPublished === false && !skipPasswordGate(request)) {
         const unlocked = request.cookies.get(STOREFRONT_UNLOCK_COOKIE)?.value === tenant.shopId;

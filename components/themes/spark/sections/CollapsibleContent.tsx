@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useState, type MouseEvent } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { SparkCollapsibleContentSettings, SparkCollapsibleItemBlock } from "../sparkConfig";
 
@@ -17,23 +17,31 @@ interface CollapsibleContentProps {
 // (read-only design reference) — an FAQ-style accordion. Item is a single
 // homogeneous block type capped at 12 (matches the reference's THEME_SCHEMA
 // "limit": 12), same shape as Column/Slide/Banner Slide.
+function initialOpenIds(items: SparkCollapsibleItemBlock[]): Set<string> {
+    const flagged = items.filter((item) => item.settings.open_by_default === true).map((item) => item.id);
+    if (flagged.length > 0) return new Set(flagged);
+    return items[0] ? new Set([items[0].id]) : new Set();
+}
+
 export default function CollapsibleContent({ settings, items, isEditorPreview = false, activeBlockId = null, onBlockClick }: CollapsibleContentProps) {
-    const [openIndex, setOpenIndex] = useState<number | null>(null);
+    const defaultOpenKey = items.map((item) => `${item.id}:${item.settings.open_by_default === true}`).join("|");
+    const [openIds, setOpenIds] = useState<Set<string>>(() => initialOpenIds(items));
 
     useEffect(() => {
-        if (!activeBlockId) return;
-        const index = items.findIndex((item) => item.id === activeBlockId);
-        if (index !== -1) setOpenIndex(index);
+        setOpenIds(initialOpenIds(items));
+        // Re-apply only when Open-by-default flags change (merchant customization).
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeBlockId]);
+    }, [defaultOpenKey]);
 
-    useEffect(() => {
-        if (items.length > 0 && openIndex === null && !activeBlockId) {
-            const indexToOpen = items.findIndex((item) => item.settings.open_by_default);
-            if (indexToOpen !== -1) setOpenIndex(indexToOpen);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [items]);
+    const toggleOpen = (id: string, e?: MouseEvent) => {
+        e?.stopPropagation();
+        setOpenIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
 
     if (items.length === 0) return null;
 
@@ -46,13 +54,14 @@ export default function CollapsibleContent({ settings, items, isEditorPreview = 
                 {settings.section_heading && <h2 className="text-3xl md:text-4xl font-bold tracking-tight">{settings.section_heading}</h2>}
             </div>
             <div className="space-y-4">
-                {items.map((item, i) => {
+                {items.map((item) => {
                     const isActive = isEditorPreview && activeBlockId === item.id;
-                    const isOpen = openIndex === i;
+                    const isOpen = openIds.has(item.id);
                     const content = (
                         <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm" style={{ backgroundColor: settings.block_color }}>
                             <button
-                                onClick={() => setOpenIndex(isOpen ? null : i)}
+                                type="button"
+                                onClick={(e) => toggleOpen(item.id, e)}
                                 className="w-full flex items-center justify-between p-6 text-left hover:bg-gray-50 transition-colors group"
                             >
                                 <span
@@ -96,7 +105,6 @@ export default function CollapsibleContent({ settings, items, isEditorPreview = 
                             className={`relative w-full group/block cursor-pointer ${isActive ? "ring-2 ring-blue-500 rounded-sm" : "hover:ring-2 hover:ring-blue-400 rounded-sm"}`}
                             onClick={(e) => {
                                 e.stopPropagation();
-                                e.preventDefault();
                                 onBlockClick?.(item.id);
                             }}
                         >
