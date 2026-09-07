@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import Link from "next/link";
 import type { SparkSlideBlock, SparkSlideshowSettings } from "../sparkConfig";
 
 interface SlideshowProps {
@@ -14,6 +13,15 @@ interface SlideshowProps {
     isEditorPreview?: boolean;
     activeSlideId?: string | null;
     onSlideClick?: (id: string) => void;
+}
+
+function resolveSlideshowLink(value: string): { href: string; external: boolean } {
+    const href = value.trim();
+    if (href === "/shop" || href === "/shops") return { href: "/products", external: false };
+    const external = /^(https?:\/\/|\/\/|www\.)/i.test(href) || /^[\w-]+(?:\.[\w-]+)+(?:\/|$)/i.test(href);
+    if (!external) return { href, external: false };
+    if (/^https?:\/\//i.test(href)) return { href, external: true };
+    return { href: `https://${href.replace(/^\/\//, "")}`, external: true };
 }
 
 // Full port of Fype-E-Commerce-UI's sections/Slideshow.tsx (read-only design
@@ -44,6 +52,7 @@ export default function Slideshow({ settings, slides, isEditorPreview = false, a
     const safeIndex = isSlideSelectedInEditor ? activeSlideIndex : currentIndex >= slides.length ? 0 : currentIndex;
     const slide = slides[safeIndex];
     const s = slide.settings;
+    const buttonLink = s.button_link ? resolveSlideshowLink(s.button_link) : { href: "#", external: false };
 
     return (
         <section
@@ -132,8 +141,10 @@ export default function Slideshow({ settings, slides, isEditorPreview = false, a
                                 animate={{ y: 0, opacity: 1 }}
                                 transition={{ delay: 0.4, duration: 0.5 }}
                             >
-                                <Link
-                                    href={s.button_link || "#"}
+                                <a
+                                    href={buttonLink.href}
+                                    target={buttonLink.external ? "_blank" : undefined}
+                                    rel={buttonLink.external ? "noopener noreferrer" : undefined}
                                     className={
                                         s.button_style === "Filled"
                                             ? "px-8 py-3 rounded-full uppercase tracking-[0.2em] text-[10px] hover:opacity-90 transition-opacity inline-block"
@@ -146,7 +157,7 @@ export default function Slideshow({ settings, slides, isEditorPreview = false, a
                                     }
                                 >
                                     {s.button_text}
-                                </Link>
+                                </a>
                             </motion.div>
                         </div>
                     )}

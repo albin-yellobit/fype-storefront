@@ -4,12 +4,26 @@
     --spark-heading-font: "Outfit", sans-serif;
     --spark-body-font: "Outfit", sans-serif;
     --spark-accent-font: "Playfair Display", serif;
-    --page-width: 1280px;
+    --spark-page-width: 1280px;
+    --spark-horizontal-spacing: 0px;
+    --spark-vertical-spacing: 0px;
     font-family: var(--spark-body-font);
     /* Clip horizontal overflow without creating a scroll container; the
        latter prevents descendants using position: sticky from sticking to
        the document viewport. */
     overflow-x: clip;
+}
+
+/* Layout settings are provided by SparkHome as variables so draft changes in
+   the theme editor and saved storefront config use the same measurements. */
+.spark-theme-root .max-w-7xl {
+    max-width: var(--spark-page-width);
+    padding-left: calc(1.5rem + var(--spark-horizontal-spacing));
+    padding-right: calc(1.5rem + var(--spark-horizontal-spacing));
+}
+
+.spark-theme-root .spark-layout-section {
+    margin-bottom: var(--spark-vertical-spacing);
 }
 
 .spark-theme-root h1,
@@ -22,20 +36,24 @@
     font-family: var(--spark-heading-font);
 }
 
+.spark-theme-root .spark-font-heading {
+    font-family: var(--spark-heading-font);
+}
+
+.spark-theme-root .spark-font-subheading {
+    font-family: var(--spark-accent-font);
+}
+
 .spark-theme-root p,
 .spark-theme-root li,
 .spark-theme-root label,
 .spark-theme-root input,
 .spark-theme-root textarea,
 .spark-theme-root select,
-.spark-theme-root .spark-font-body {
-    font-family: var(--spark-body-font);
-}
-
 .spark-theme-root button,
 .spark-theme-root a,
-.spark-theme-root .spark-font-accent {
-    font-family: var(--spark-accent-font);
+.spark-theme-root .spark-font-body {
+    font-family: var(--spark-body-font);
 }
 
 /* Announcement bar "Scroll" text animation (Header.tsx) — a duplicated,
@@ -52,4 +70,14 @@
     animation-name: spark-marquee;
     animation-timing-function: linear;
     animation-iteration-count: infinite;
+}
+
+.spark-banner-outline-button {
+    color: var(--spark-button-text);
+    transition: color 150ms ease, background-color 150ms ease, opacity 150ms ease;
+}
+
+.spark-banner-outline-button:hover {
+    background-color: #ffffff;
+    color: var(--spark-button-hover-text);
 }

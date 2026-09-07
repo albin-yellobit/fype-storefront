@@ -7,7 +7,7 @@ import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { addToCart, addToGuestCart, fetchCart, fetchGuestCart } from "@/redux/slices/userSlice";
 import { calculateProductTax } from "@/utils/taxCalculator";
 import type { SparkFeaturedCollectionSettings } from "../sparkConfig";
-import type { StorefrontProduct, TaxSettings } from "@/types/storefront";
+import type { CollectionSummary, StorefrontProduct, TaxSettings } from "@/types/storefront";
 import { useSparkCart } from "../SparkCartContext";
 
 interface FeaturedCollectionProps {
@@ -20,6 +20,7 @@ interface FeaturedCollectionProps {
     // collection/count live in the editor, since draft edits never
     // round-trip through the server.
     initialProducts?: StorefrontProduct[];
+    initialCollection?: CollectionSummary | null;
     // Gates the placeholder fallback below — real customers must never see
     // dummy content, only a merchant actively customizing the theme.
     isEditorPreview?: boolean;
@@ -178,9 +179,11 @@ export default function FeaturedCollection({
     storeId,
     globalTax,
     initialProducts = [],
+    initialCollection = null,
     isEditorPreview = false,
 }: FeaturedCollectionProps) {
     const [products, setProducts] = useState<StorefrontProduct[]>(initialProducts);
+    const [collection, setCollection] = useState<CollectionSummary | null>(initialCollection);
     const ssrKey = useRef(`${settings.collection_id}:${settings.products_to_show}`).current;
 
     useEffect(() => {
@@ -188,17 +191,29 @@ export default function FeaturedCollection({
         if (key === ssrKey) return;
         if (!settings.collection_id) {
             setProducts([]);
+            setCollection(null);
             return;
         }
         let cancelled = false;
-        getApi<{ data: { products: StorefrontProduct[] } }>(
-            `/commerce/${storeId}/products/collections/${settings.collection_id}/storefront-products?limit=${settings.products_to_show}`
-        )
-            .then((res) => {
-                if (!cancelled) setProducts(res.data?.data?.products ?? []);
+        Promise.all([
+            getApi<{ data: { products: StorefrontProduct[] } }>(
+                `/commerce/${storeId}/products/collections/${settings.collection_id}/storefront-products?limit=${settings.products_to_show}`
+            ),
+            getApi<{ data: { collection: CollectionSummary } }>(
+                `/commerce/${storeId}/products/collections/${settings.collection_id}`
+            ),
+        ])
+            .then(([productsResponse, collectionResponse]) => {
+                if (!cancelled) {
+                    setProducts(productsResponse.data?.data?.products ?? []);
+                    setCollection(collectionResponse.data?.data?.collection ?? null);
+                }
             })
             .catch(() => {
-                if (!cancelled) setProducts([]);
+                if (!cancelled) {
+                    setProducts([]);
+                    setCollection(null);
+                }
             });
         return () => {
             cancelled = true;
@@ -214,6 +229,8 @@ export default function FeaturedCollection({
     // (real data) takes over — this branch stops applying entirely.
     const displayProducts = products.length > 0 ? products : isEditorPreview ? placeholderProducts(settings.products_to_show) : [];
     const isPlaceholder = products.length === 0 && displayProducts.length > 0;
+    const defaultCollectionLink = collection?.slug ? `/collections/${collection.slug}` : "#";
+    const gotoLink = !settings.goto_link || settings.goto_link === "/products" ? defaultCollectionLink : settings.goto_link;
 
     if (displayProducts.length === 0) return null;
 
@@ -236,7 +253,7 @@ export default function FeaturedCollection({
                     <h2 className="font-bold tracking-tight text-3xl md:text-4xl">{settings.section_heading}</h2>
                     {settings.goto_label && (
                         <a
-                            href={settings.goto_link || "#"}
+                            href={gotoLink}
                             className="hidden md:inline-flex font-medium items-center gap-2 hover:text-gray-500 transition-colors"
                         >
                             {settings.goto_label}

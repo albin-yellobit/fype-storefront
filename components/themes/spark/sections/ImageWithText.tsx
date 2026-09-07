@@ -5,6 +5,15 @@ import type { SparkImageWithTextBlock, SparkImageWithTextSettings } from "../spa
 
 type ButtonBlock = Extract<SparkImageWithTextBlock, { type: "Button" }>;
 
+function resolveImageWithTextLink(value: string): { href: string; external: boolean } {
+    const href = value.trim();
+    if (href === "/shop" || href === "/shops") return { href: "/products", external: false };
+    const external = /^(https?:\/\/|\/\/|www\.)/i.test(href) || /^[\w-]+(?:\.[\w-]+)+(?:\/|$)/i.test(href);
+    if (!external) return { href, external: false };
+    if (/^https?:\/\//i.test(href)) return { href, external: true };
+    return { href: `https://${href.replace(/^\/\//, "")}`, external: true };
+}
+
 interface ImageWithTextProps {
     settings: SparkImageWithTextSettings;
     // Already filtered for hidden and in the merchant's chosen order — Image
@@ -154,28 +163,35 @@ export default function ImageWithText({ settings, blocks, isEditorPreview = fals
                                     <div key={`btn-group-${index}`} className={`flex flex-wrap gap-4 w-full ${justify}`}>
                                         {item.blocks.map((block) => (
                                             <Fragment key={block.id}>
-                                                {wrapBlock(
-                                                    "button",
-                                                    block.id,
-                                                    "Button",
-                                                    block.settings.style === "Filled" ? (
-                                                        <a
-                                                            href={block.settings.link || "#"}
-                                                            className="px-8 py-3.5 font-medium rounded-full transition-opacity hover:opacity-90 uppercase tracking-widest text-xs inline-block cursor-pointer text-white"
-                                                            style={{ backgroundColor: block.settings.button_color }}
-                                                        >
-                                                            {block.settings.label || "Discover More"}
-                                                        </a>
-                                                    ) : (
-                                                        <a
-                                                            href={block.settings.link || "#"}
-                                                            className="px-8 py-3.5 bg-transparent border font-medium rounded-full transition-colors uppercase tracking-widest text-xs inline-block cursor-pointer"
-                                                            style={{ borderColor: block.settings.button_color, color: block.settings.button_color }}
-                                                        >
-                                                            {block.settings.label || "Discover More"}
-                                                        </a>
-                                                    )
-                                                )}
+                                                {(() => {
+                                                    const buttonLink = block.settings.link ? resolveImageWithTextLink(block.settings.link) : { href: "#", external: false };
+                                                    return wrapBlock(
+                                                        "button",
+                                                        block.id,
+                                                        "Button",
+                                                        block.settings.style === "Filled" ? (
+                                                            <a
+                                                                href={buttonLink.href}
+                                                                target={buttonLink.external ? "_blank" : undefined}
+                                                                rel={buttonLink.external ? "noopener noreferrer" : undefined}
+                                                                className="px-8 py-3.5 font-medium rounded-full transition-opacity hover:opacity-90 uppercase tracking-widest text-xs inline-block cursor-pointer text-white"
+                                                                style={{ backgroundColor: block.settings.button_color }}
+                                                            >
+                                                                {block.settings.label || "Discover More"}
+                                                            </a>
+                                                        ) : (
+                                                            <a
+                                                                href={buttonLink.href}
+                                                                target={buttonLink.external ? "_blank" : undefined}
+                                                                rel={buttonLink.external ? "noopener noreferrer" : undefined}
+                                                                className="px-8 py-3.5 bg-transparent border font-medium rounded-full transition-colors uppercase tracking-widest text-xs inline-block cursor-pointer"
+                                                                style={{ borderColor: block.settings.button_color, color: block.settings.button_color }}
+                                                            >
+                                                                {block.settings.label || "Discover More"}
+                                                            </a>
+                                                        )
+                                                    );
+                                                })()}
                                             </Fragment>
                                         ))}
                                     </div>
@@ -185,7 +201,7 @@ export default function ImageWithText({ settings, blocks, isEditorPreview = fals
                             if (item.type === "Text") {
                                 const styleClass =
                                     item.settings.style === "Subtitle"
-                                        ? "tracking-[0.2em] text-xs sm:text-sm font-semibold block uppercase"
+                                        ? "tracking-[0.2em] text-xs sm:text-sm font-semibold block uppercase spark-font-subheading"
                                         : "text-gray-600 text-lg leading-relaxed block [&_p]:mb-4 last:[&_p]:mb-0";
                                 return (
                                     <Fragment key={item.id}>

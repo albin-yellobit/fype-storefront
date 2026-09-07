@@ -17,6 +17,15 @@ interface BannerSliderProps {
     onSlideClick?: (id: string) => void;
 }
 
+function resolveBannerLink(value: string): { href: string; external: boolean } {
+    const href = value.trim();
+    if (href === "/shop" || href === "/shops") return { href: "/products", external: false };
+    const external = /^(https?:\/\/|\/\/|www\.)/i.test(href) || /^[\w-]+(?:\.[\w-]+)+(?:\/|$)/i.test(href);
+    if (!external) return { href, external: false };
+    if (/^https?:\/\//i.test(href)) return { href, external: true };
+    return { href: `https://${href.replace(/^\/\//, "")}`, external: true };
+}
+
 // Full port of Fype-E-Commerce-UI's src/components/BannerSlider.tsx
 // (read-only design reference) — replaces the old static ImageBanner.tsx
 // (see Fype-E-Commerce-UI commit c9cb197 "replace ImageBanner with
@@ -26,16 +35,6 @@ interface BannerSliderProps {
 // convenience needing a postMessage drag protocol across the iframe
 // boundary) — Object Position X/Y is still fully editable via sliders in
 // the editor.
-function getReadableTextColor(hex: string): string {
-    const normalized = hex.replace('#', '').trim();
-    if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return '#000000';
-    const r = parseInt(normalized.slice(0, 2), 16);
-    const g = parseInt(normalized.slice(2, 4), 16);
-    const b = parseInt(normalized.slice(4, 6), 16);
-    const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-    return luminance > 0.72 ? '#111827' : '#ffffff';
-}
-
 export default function BannerSlider({ settings, slides, isEditorPreview = false, activeSlideId = null, onSlideClick }: BannerSliderProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -47,12 +46,11 @@ export default function BannerSlider({ settings, slides, isEditorPreview = false
     const isSlideSelectedInEditor = isEditorPreview && activeSlideIndex !== -1;
 
     useEffect(() => {
-        // Disable autoplay while a slide from this banner is selected in the editor.
-        if (isSlideSelectedInEditor) return;
+        // Banner timing is shared across the carousel, including the
+        // transition from the final slide back to the first slide.
         if (slides.length <= 1) return;
 
-        const activeSlide = slides[currentIndex % slides.length];
-        const delaySeconds = activeSlide?.settings.appear_after || 5;
+        const delaySeconds = slides[0]?.settings.appear_after || 5;
         const timer = window.setTimeout(() => {
             setCurrentIndex((prev) => (prev + 1) % slides.length);
         }, delaySeconds * 1000);
@@ -65,12 +63,24 @@ export default function BannerSlider({ settings, slides, isEditorPreview = false
     if (settings.banner_height === "Medium") heightClass = "min-h-[550px] lg:min-h-[650px]";
 
     if (slides.length === 0) {
-        return <div className={`w-full flex items-center justify-center bg-gray-100 ${heightClass}`} />;
+        return (
+            <div
+                className="w-full"
+                style={{
+                    backgroundColor: settings.background_color,
+                    paddingTop: `${settings.padding_top}px`,
+                    paddingBottom: `${settings.padding_bottom}px`,
+                }}
+            >
+                <div className={`w-full flex items-center justify-center bg-gray-100 ${heightClass}`} />
+            </div>
+        );
     }
 
     const safeIndex = isSlideSelectedInEditor ? activeSlideIndex : currentIndex >= slides.length ? 0 : currentIndex;
     const slide = slides[safeIndex];
     const s = slide.settings;
+    const buttonLink = s.button_link ? resolveBannerLink(s.button_link) : { href: "#", external: false };
 
     const headingHtml = s.heading_text || "";
     const bodyHtml = s.text || "";
@@ -95,7 +105,7 @@ export default function BannerSlider({ settings, slides, isEditorPreview = false
         return (
             <div
                 id={`spark-block-${slide.id}`}
-                className={`relative w-full overflow-hidden flex flex-col ${heightClass} ${isEditorPreview ? "group/block" : ""}`}
+                className="w-full"
                 style={{
                     backgroundColor: settings.background_color,
                     paddingTop: `${settings.padding_top}px`,
@@ -108,6 +118,7 @@ export default function BannerSlider({ settings, slides, isEditorPreview = false
                 onSlideClick?.(slide.id);
             }}
         >
+            <div className={`relative w-full overflow-hidden flex flex-col ${heightClass} ${isEditorPreview ? "group/block" : ""}`}>
             <AnimatePresence>
                 <motion.div
                     key={slide.id}
@@ -152,7 +163,7 @@ export default function BannerSlider({ settings, slides, isEditorPreview = false
                         initial={{ y: 20, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ delay: 0.2, duration: 0.5 }}
-                        className={`text-white/80 ${s.text_style === "Subtitle" ? "tracking-[0.2em] text-xs sm:text-sm font-semibold uppercase" : "text-base sm:text-lg"} max-w-2xl [&_p]:m-0 [&_strong]:font-bold [&_em]:italic [&_u]:underline [&_a]:underline [&_a]:underline-offset-4`}
+                        className={`text-white/80 ${s.text_style === "Subtitle" ? "tracking-[0.2em] text-xs sm:text-sm font-semibold uppercase spark-font-subheading" : "text-base sm:text-lg"} max-w-2xl [&_p]:m-0 [&_strong]:font-bold [&_em]:italic [&_u]:underline [&_a]:underline-offset-4`}
                         style={{ color: s.text_color }}
                         dangerouslySetInnerHTML={{ __html: bodyHtml }}
                     />
@@ -166,17 +177,23 @@ export default function BannerSlider({ settings, slides, isEditorPreview = false
                         className="pointer-events-auto mt-4"
                     >
                         <Link
-                            href={s.button_link || "#"}
+                            href={buttonLink.href}
+                            target={buttonLink.external ? "_blank" : undefined}
+                            rel={buttonLink.external ? "noreferrer noopener" : undefined}
                             onClick={(e) => e.stopPropagation()}
                             className={`px-8 py-3.5 rounded-full uppercase tracking-widest text-xs font-medium transition-colors inline-block ${
                                 s.button_style === "Filled"
                                     ? "hover:opacity-90"
-                                    : `hover:bg-white hover:text-[${getReadableTextColor(s.button_color || '#ffffff')}] border border-[${s.button_color || '#ffffff'}] bg-transparent`
+                                    : "spark-banner-outline-button border bg-transparent"
                             }`}
                             style={
                                 s.button_style === "Filled"
                                     ? { backgroundColor: s.button_color || "#ffffff", color: s.button_text_color || "#000000" }
-                                    : { borderColor: s.button_color, color: s.button_color }
+                                    : {
+                                          borderColor: s.button_color,
+                                          ["--spark-button-text" as string]: s.button_color,
+                                          ["--spark-button-hover-text" as string]: s.button_hover_text_color || "#000000",
+                                      }
                             }
                         >
                             {s.button_label}
@@ -216,6 +233,7 @@ export default function BannerSlider({ settings, slides, isEditorPreview = false
                     </div>
                 </div>
             )}
-        </div>
-    );
+            </div>
+            </div>
+        );
 }

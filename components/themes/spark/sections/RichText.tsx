@@ -68,7 +68,7 @@ export default function RichText({ settings, blocks, isEditorPreview = false, ac
                                     "Heading",
                                     <h2
                                         className={`font-light tracking-tight leading-[1.3] ${sizeClass}`}
-                                        style={{ color, fontFamily: font !== "Outfit" ? `"${font}", sans-serif` : undefined }}
+                                        style={{ color }}
                                         dangerouslySetInnerHTML={{ __html: text }}
                                     />
                                 )}
@@ -76,7 +76,7 @@ export default function RichText({ settings, blocks, isEditorPreview = false, ac
                         );
                     }
                     if (block.type === "Text") {
-                        const { text, style, color, font } = block.settings;
+                        const { text, style, color } = block.settings;
                         return (
                             <div key={block.id} className="w-full flex justify-center">
                                 {wrapBlock(
@@ -84,8 +84,8 @@ export default function RichText({ settings, blocks, isEditorPreview = false, ac
                                     block.id,
                                     "Text",
                                     <div
-                                        className={`font-medium max-w-xl mx-auto tracking-widest uppercase [&_p]:mb-4 last:[&_p]:mb-0 [&_a]:underline [&_a]:underline-offset-4 hover:[&_a]:text-gray-900 transition-colors ${style === "Subtitle" ? "text-sm" : "text-xs"}`}
-                                        style={{ color, fontFamily: font !== "Outfit" ? `"${font}", sans-serif` : undefined }}
+                                        className={`font-medium max-w-xl mx-auto tracking-widest [&_p]:mb-4 last:[&_p]:mb-0 [&_a]:underline [&_a]:underline-offset-4 hover:[&_a]:text-gray-900 transition-colors ${style === "Subtitle" ? "text-sm spark-font-subheading" : "text-xs"}`}
+                                        style={{ color }}
                                         dangerouslySetInnerHTML={{ __html: text }}
                                     />
                                 )}

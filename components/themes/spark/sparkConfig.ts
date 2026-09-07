@@ -79,6 +79,7 @@ export interface SparkBannerSlideBlockSettings {
     button_link: string;
     button_style: "Outline" | "Filled";
     button_color: string;
+    button_hover_text_color?: string;
     // Only meaningful when button_style is "Filled" (Outline uses
     // button_color for both border and text).
     button_text_color: string;
@@ -655,6 +656,47 @@ export interface SparkConfigOverride {
 export function mergeSparkConfig(base: SparkConfig, override?: SparkConfigOverride | Record<string, unknown> | null): SparkConfig {
     if (!override) return base;
     const o = override as SparkConfigOverride;
+    const mergedBody = o.sections?.body ?? base.sections.body;
+    const normalizedBody = mergedBody.map((section) => {
+        if (section.type !== "image_with_text") return section;
+
+        const legacyHeading = section.blocks.find(
+            (block): block is Extract<SparkImageWithTextBlock, { type: "Heading" }> =>
+                block.type === "Heading" &&
+                /^\s*<span[^>]*>\s*Sustainability\s*<\/span>/i.test(block.settings.text)
+        );
+        const hasSubtitle = section.blocks.some(
+            (block) => block.type === "Text" && block.settings.style === "Subtitle" && /sustainability/i.test(block.settings.text)
+        );
+        if (!legacyHeading || hasSubtitle) return section;
+
+        const headingText = legacyHeading.settings.text.replace(/^\s*<span[^>]*>\s*Sustainability\s*<\/span>\s*/i, "");
+        const subtitle = {
+            id: `${legacyHeading.id}_subtitle`,
+            type: "Text" as const,
+            settings: {
+                text: "Sustainability",
+                style: "Subtitle" as const,
+                color: legacyHeading.settings.color,
+                font: legacyHeading.settings.font ?? "Outfit",
+            },
+        };
+        const migratedBlocks: SparkImageWithTextBlock[] = section.blocks.map((block) => {
+            if (block.type !== "Heading" || block.id !== legacyHeading.id) return block;
+            return {
+                ...block,
+                settings: { ...block.settings, text: headingText },
+            };
+        });
+        const headingIndex = migratedBlocks.findIndex((block) => block.id === legacyHeading.id);
+        migratedBlocks.splice(headingIndex, 0, subtitle);
+
+        return {
+            ...section,
+            blocks: migratedBlocks,
+        };
+    });
+
     return {
         ...base,
         settings: {
@@ -683,7 +725,7 @@ export function mergeSparkConfig(base: SparkConfig, override?: SparkConfigOverri
                 hidden: o.sections?.header?.hidden ?? base.sections.header.hidden,
                 settings: { ...base.sections.header.settings, ...(o.sections?.header?.settings ?? {}) },
             },
-            body: o.sections?.body ?? base.sections.body,
+            body: normalizedBody,
             footer: {
                 type: "footer",
                 hidden: o.sections?.footer?.hidden ?? base.sections.footer.hidden,
@@ -893,6 +935,7 @@ export const sparkDefaultConfig: SparkConfig = {
                             button_link: "/products",
                             button_style: "Outline",
                             button_color: "#ffffff",
+                            button_hover_text_color: "#000000",
                             button_text_color: "#000000",
                         },
                     },
@@ -1078,10 +1121,20 @@ export const sparkDefaultConfig: SparkConfig = {
                         },
                     },
                     {
+                        id: "iwt_subtitle",
+                        type: "Text",
+                        settings: {
+                            text: "Sustainability",
+                            style: "Subtitle",
+                            color: "",
+                            font: "Outfit",
+                        },
+                    },
+                    {
                         id: "iwt_heading",
                         type: "Heading",
                         settings: {
-                            text: '<span class="text-sm font-semibold tracking-widest text-gray-400 uppercase mb-4 block">Sustainability</span>Conscious Creation.',
+                            text: "Conscious Creation.",
                             size: "Large",
                             color: "",
                             font: "Outfit",

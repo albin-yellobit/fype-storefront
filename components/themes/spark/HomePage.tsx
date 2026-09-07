@@ -1,7 +1,7 @@
 import type { HomePageProps } from "@/components/themes/registry";
 import SparkHome from "./SparkHome";
 import { buildSparkNavItems, mergeSparkConfig, sparkDefaultConfig } from "./sparkConfig";
-import { getApiBaseUrl, getCollectionProducts, getProductDetails, getCollectionsByIds } from "@/lib/storefront-api";
+import { getApiBaseUrl, getCollectionById, getCollectionProducts, getProductDetails, getCollectionsByIds } from "@/lib/storefront-api";
 
 // Spark's self-contained Home page — reads the store's real saved
 // `themeConfig` (Theme.themeConfig, a Mixed field since Spark's shape
@@ -47,6 +47,7 @@ export default async function HomePage({ shop, navPages, themeConfig }: HomePage
     );
 
     const initialFeaturedCollectionProducts: Record<string, Awaited<ReturnType<typeof getCollectionProducts>>> = {};
+    const initialFeaturedCollections: Record<string, Awaited<ReturnType<typeof getCollectionById>>> = {};
     const initialFeaturedProducts: Record<string, Awaited<ReturnType<typeof getProductDetails>>["product"]> = {};
     const initialCollectionListCollections: Record<string, Awaited<ReturnType<typeof getCollectionsByIds>>> = {};
 
@@ -62,6 +63,7 @@ export default async function HomePage({ shop, navPages, themeConfig }: HomePage
                     instance.settings.collection_id,
                     instance.settings.products_to_show
                 );
+                initialFeaturedCollections[instance.id] = await getCollectionById(apiBaseUrl, shop.shopId, instance.settings.collection_id);
             }),
             ...featuredProductInstances.map(async (instance) => {
                 if (instance.type !== "featured_product") return;
@@ -81,6 +83,7 @@ export default async function HomePage({ shop, navPages, themeConfig }: HomePage
             navItems={navItems}
             shop={shop}
             initialFeaturedCollectionProducts={initialFeaturedCollectionProducts}
+            initialFeaturedCollections={initialFeaturedCollections}
             initialFeaturedProducts={initialFeaturedProducts}
             initialCollectionListCollections={initialCollectionListCollections}
         />

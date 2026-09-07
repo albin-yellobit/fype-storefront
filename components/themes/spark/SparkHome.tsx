@@ -84,6 +84,7 @@ interface SparkHomeProps {
     // data is keyed by the owning instance's id rather than one flat prop
     // per type.
     initialFeaturedCollectionProducts?: Record<string, StorefrontProduct[]>;
+    initialFeaturedCollections?: Record<string, CollectionSummary | null>;
     initialFeaturedProducts?: Record<string, (ProductDetail & { variants?: ProductVariant[] }) | null>;
     initialCollectionListCollections?: Record<string, CollectionSummary[]>;
 }
@@ -128,6 +129,7 @@ export default function SparkHome({
     navItems,
     shop,
     initialFeaturedCollectionProducts = {},
+    initialFeaturedCollections = {},
     initialFeaturedProducts = {},
     initialCollectionListCollections = {},
 }: SparkHomeProps) {
@@ -189,7 +191,11 @@ export default function SparkHome({
     // just naturally renders starting at the top of the page.
     const heroOverlap = !header.hidden && header.settings.glass_effect === true && header.settings.sticky_header === true;
     const { colors: colorSchemeSettings, logo: logoSettings, social_media: socialMedia } = liveConfig.theme_settings;
-    const sectionSpacing = Math.max(0, liveConfig.theme_settings.layout.section_spacing ?? 0);
+    const layout = liveConfig.theme_settings.layout;
+    const pageWidth = Math.max(960, layout.page_width ?? 1280);
+    const sectionSpacing = Math.max(0, layout.section_spacing ?? 0);
+    const horizontalSpacing = Math.max(0, layout.horizontal_spacing ?? 0);
+    const verticalSpacing = Math.max(0, layout.vertical_spacing ?? 0);
     const sectionAnimation = liveConfig.theme_settings.animation.section_animation;
 
     const sectionMotionProps =
@@ -219,19 +225,19 @@ export default function SparkHome({
     const fontStack = (font?: string) => {
         if (!font) return '"Outfit", sans-serif';
         if (font.includes("Playfair Display")) return '"Playfair Display", serif';
-        if (font.includes("JetBrains Mono")) return '"JetBrains Mono", monospace';
         return '"Outfit", sans-serif';
     };
-    const rootStyle = activeScheme
-        ? {
-            backgroundColor: activeScheme.background,
-            backgroundImage: activeScheme.background_gradient || undefined,
-            color: activeScheme.text,
-            ["--spark-heading-font" as string]: fontStack(liveConfig.theme_settings.typography.heading_font),
-            ["--spark-body-font" as string]: fontStack(liveConfig.theme_settings.typography.body_font),
-            ["--spark-accent-font" as string]: fontStack(liveConfig.theme_settings.typography.sub_heading_font),
-        }
-        : undefined;
+    const rootStyle = {
+        backgroundColor: activeScheme?.background,
+        backgroundImage: activeScheme?.background_gradient || undefined,
+        color: activeScheme?.text,
+        ["--spark-heading-font" as string]: fontStack(liveConfig.theme_settings.typography.heading_font),
+        ["--spark-body-font" as string]: fontStack(liveConfig.theme_settings.typography.body_font),
+        ["--spark-accent-font" as string]: fontStack(liveConfig.theme_settings.typography.sub_heading_font),
+        ["--spark-page-width" as string]: `${pageWidth}px`,
+        ["--spark-horizontal-spacing" as string]: `${horizontalSpacing}px`,
+        ["--spark-vertical-spacing" as string]: `${verticalSpacing}px`,
+    };
 
     const selectSection = (sectionId: string) => {
         setActiveSection(sectionId);
@@ -292,13 +298,13 @@ export default function SparkHome({
     const sectionProps = (sectionId: string) =>
         isEditorPreview
             ? {
-                className: "relative group cursor-pointer",
+                className: "relative group cursor-pointer spark-layout-section",
                 onClickCapture: (e: React.MouseEvent) => {
                     e.preventDefault();
                     selectSection(sectionId);
                 },
             }
-            : { className: "relative" };
+            : { className: "relative spark-layout-section" };
 
     // Merchant-toggled visibility (SparkCustomizeTheme.tsx's sidebar eye
     // icon) — persisted on the section/block itself, so hidden here means
@@ -337,6 +343,7 @@ export default function SparkHome({
                         storeId={shop.shopId}
                         globalTax={shop.settings?.tax}
                         initialProducts={initialFeaturedCollectionProducts[section.id] ?? []}
+                        initialCollection={initialFeaturedCollections?.[section.id] ?? null}
                         isEditorPreview={isEditorPreview}
                     />
                 );
