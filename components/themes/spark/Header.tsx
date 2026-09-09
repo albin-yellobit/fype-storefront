@@ -97,7 +97,14 @@ export default function Header({
     // Blocks can be added/removed/reordered by the editor while this is
     // mounted (live preview) — derive instead of syncing currentAnnouncement
     // to numBlocks via an effect, so there's never an out-of-bounds frame.
-    const activeIndex = numBlocks > 0 ? currentAnnouncement % numBlocks : 0;
+    const selectedAnnouncementIndex = isEditorPreview && activeAnnouncementId
+        ? announcementBlocks.findIndex((block) => block.id === activeAnnouncementId)
+        : -1;
+    const activeIndex = selectedAnnouncementIndex >= 0
+        ? selectedAnnouncementIndex
+        : numBlocks > 0
+            ? currentAnnouncement % numBlocks
+            : 0;
     const activeBlockSettings = announcementBlocks[activeIndex]?.settings;
     // Animation and rotation timing are announcement-bar-wide settings. The
     // editor propagates changes to every block, while the first block keeps
@@ -107,12 +114,12 @@ export default function Header({
     const appearAfter = sharedAnimationSettings?.appear_after || 5;
 
     useEffect(() => {
-        if (numBlocks <= 1 || isScroll) return;
+        if (numBlocks <= 1 || isScroll || selectedAnnouncementIndex >= 0) return;
         const timer = setTimeout(() => {
             setCurrentAnnouncement((prev) => (prev + 1) % numBlocks);
         }, appearAfter * 1000);
         return () => clearTimeout(timer);
-    }, [numBlocks, isScroll, appearAfter, activeIndex]);
+    }, [numBlocks, isScroll, appearAfter, activeIndex, selectedAnnouncementIndex]);
 
     const speedSetting = sharedAnimationSettings?.speed || 20;
     const scrollDuration = `${speedSetting * REPEAT_COUNT}s`;
