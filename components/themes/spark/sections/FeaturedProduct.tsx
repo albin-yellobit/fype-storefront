@@ -99,6 +99,7 @@ export default function FeaturedProduct({ settings, storeId, globalTax, initialP
 
     const isPlaceholder = !product && isEditorPreview;
     const displayProduct = product ?? (isPlaceholder ? placeholderProduct() : null);
+    const [copied, setCopied] = useState(false);
 
     if (!displayProduct) return null;
 
@@ -121,7 +122,6 @@ export default function FeaturedProduct({ settings, storeId, globalTax, initialP
     // action when `isEditorPreview` is true so no real cart requests fire.
     const showQuickCart = settings.show_add_to_cart && !isPlaceholder && !displayProduct.hasVariants;
     const productHref = `/products/${displayProduct.productId}`;
-    const [copied, setCopied] = useState(false);
 
     const handleShareClick = async (e: React.MouseEvent) => {
         e.stopPropagation();
