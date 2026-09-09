@@ -442,12 +442,7 @@ export interface SparkThemeSettingsPages {
     product_navbar_label: string;
 }
 
-// Typography/Layout/Animation groups exist in the reference's Theme Settings
-// panel (real, editable UI) but — matching the reference exactly — aren't
-// consumed by any section's rendering there either (grepped the reference:
-// no `themeSettings.typography`/`.layout`/`.animation` read anywhere outside
-// the settings panel itself). Ported as schema-parity scaffolding, same
-// precedent as the pre-existing top-level settings.typography.
+// Site-wide settings shared by the editor and storefront renderers.
 export interface SparkThemeSettings {
     logo: SparkThemeSettingsLogo;
     colors: { schemes: SparkColorScheme[]; active_scheme_id: string };
@@ -829,8 +824,8 @@ export const sparkDefaultConfig: SparkConfig = {
             body_font: "Outfit",
         },
         layout: {
-            page_width: 1280,
-            section_spacing: 0,
+            page_width: 1200,
+            section_spacing: 40,
             horizontal_spacing: 0,
             vertical_spacing: 0,
         },

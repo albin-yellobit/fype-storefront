@@ -13,6 +13,7 @@ import { calculateProductTax } from "@/utils/taxCalculator";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { addToCart, addToGuestCart, addToWishlist, fetchCart, fetchGuestCart, removeFromWishlist } from "@/redux/slices/userSlice";
 import SparkHeaderShell from "./SparkHeaderShell";
+import { sparkLayoutStyle } from "./sparkLayout";
 import { useSparkCart } from "./SparkCartContext";
 import type { SparkProductHighlight } from "./sparkConfig";
 
@@ -180,7 +181,7 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
 
     if (!product) {
         return (
-            <div className="bg-white text-black min-h-screen">
+            <div className="spark-page-layout bg-white text-black min-h-screen" style={sparkLayoutStyle(liveConfig.theme_settings.layout)}>
                 <SparkHeaderShell
                     config={liveConfig}
                     navItems={navigation}
@@ -192,7 +193,7 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
                 />
                 <div className="flex justify-center items-center min-h-[50vh] text-black/60">Product not found</div>
                 {!footer.hidden && (
-                    <div id="spark-section-footer" onClick={isEditorPreview ? selectFooter : undefined}>
+                    <div className="spark-layout-section" id="spark-section-footer" onClick={isEditorPreview ? selectFooter : undefined}>
                         <Footer
                             settings={footer.settings}
                             blocks={footer.blocks.filter((b) => !b.hidden)}
@@ -274,7 +275,7 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
         ) : null;
 
     return (
-        <div className="bg-white text-black min-h-screen pb-20 overflow-x-clip">
+        <div className="spark-page-layout bg-white text-black min-h-screen pb-20 overflow-x-clip" style={sparkLayoutStyle(liveConfig.theme_settings.layout)}>
             <SparkHeaderShell
                 config={liveConfig}
                 navItems={navigation}
@@ -286,7 +287,7 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
             />
 
             <div
-                className="relative"
+                className="relative spark-layout-section"
                 onClick={isEditorPreview ? selectLayout : undefined}
                 onMouseOver={isEditorPreview ? () => setHoveringLayout(true) : undefined}
                 onMouseLeave={isEditorPreview ? () => setHoveringLayout(false) : undefined}
@@ -322,7 +323,7 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
 
             <div
                 className="w-full mx-auto px-4 sm:px-6 py-8 md:py-12 flex flex-col md:flex-row gap-8 md:gap-16 min-w-0"
-                style={{ maxWidth: liveConfig.theme_settings.layout.page_width || 1280 }}
+                style={{ maxWidth: "var(--spark-page-width)" }}
             >
                 <ProductGallery images={displayData.images} productName={product.name} imageLayout={settings.image_layout} isNew={isNew} />
 
@@ -488,7 +489,7 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
             </div>
 
             {!footer.hidden && (
-                <div id="spark-section-footer" onClick={isEditorPreview ? selectFooter : undefined}>
+                <div className="spark-layout-section" id="spark-section-footer" onClick={isEditorPreview ? selectFooter : undefined}>
                     <Footer
                         settings={footer.settings}
                         blocks={footer.blocks.filter((b) => !b.hidden)}

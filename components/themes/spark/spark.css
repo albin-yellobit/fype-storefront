@@ -4,7 +4,8 @@
     --spark-heading-font: "Outfit", sans-serif;
     --spark-body-font: "Outfit", sans-serif;
     --spark-accent-font: "Playfair Display", serif;
-    --spark-page-width: 1280px;
+    --spark-page-width: 1200px;
+    --spark-section-spacing: 40px;
     --spark-horizontal-spacing: 0px;
     --spark-vertical-spacing: 0px;
     font-family: var(--spark-body-font);
@@ -14,7 +15,7 @@
     overflow-x: clip;
 }
 
-/* Layout settings are provided by SparkHome as variables so draft changes in
+/* Layout settings are provided by each page as variables so draft changes in
    the theme editor and saved storefront config use the same measurements. */
 .spark-theme-root .max-w-7xl {
     max-width: var(--spark-page-width);
@@ -22,8 +23,14 @@
     padding-right: calc(1.5rem + var(--spark-horizontal-spacing));
 }
 
-.spark-theme-root .spark-layout-section {
+.spark-theme-root .spark-page-layout > .spark-layout-section {
     margin-bottom: var(--spark-vertical-spacing);
+}
+
+/* Only separate rendered siblings: hiding the header or first section must
+   not introduce an empty gap at the top of the page. */
+.spark-theme-root .spark-page-layout > * + .spark-layout-section {
+    margin-top: var(--spark-section-spacing);
 }
 
 .spark-theme-root h1,

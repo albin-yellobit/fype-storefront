@@ -1,5 +1,7 @@
 "use client";
 
+import { sparkLayoutStyle } from "./sparkLayout";
+
 import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import Header from "./Header";
@@ -191,11 +193,6 @@ export default function SparkHome({
     // just naturally renders starting at the top of the page.
     const heroOverlap = !header.hidden && header.settings.glass_effect === true && header.settings.sticky_header === true;
     const { colors: colorSchemeSettings, logo: logoSettings, social_media: socialMedia } = liveConfig.theme_settings;
-    const layout = liveConfig.theme_settings.layout;
-    const pageWidth = Math.max(960, layout.page_width ?? 1280);
-    const sectionSpacing = Math.max(0, layout.section_spacing ?? 0);
-    const horizontalSpacing = Math.max(0, layout.horizontal_spacing ?? 0);
-    const verticalSpacing = Math.max(0, layout.vertical_spacing ?? 0);
     const sectionAnimation = liveConfig.theme_settings.animation.section_animation;
 
     const sectionMotionProps =
@@ -234,9 +231,7 @@ export default function SparkHome({
         ["--spark-heading-font" as string]: fontStack(liveConfig.theme_settings.typography.heading_font),
         ["--spark-body-font" as string]: fontStack(liveConfig.theme_settings.typography.body_font),
         ["--spark-accent-font" as string]: fontStack(liveConfig.theme_settings.typography.sub_heading_font),
-        ["--spark-page-width" as string]: `${pageWidth}px`,
-        ["--spark-horizontal-spacing" as string]: `${horizontalSpacing}px`,
-        ["--spark-vertical-spacing" as string]: `${verticalSpacing}px`,
+        ...sparkLayoutStyle(liveConfig.theme_settings.layout),
     };
 
     const selectSection = (sectionId: string) => {
@@ -415,7 +410,7 @@ export default function SparkHome({
 
     return (
         <div
-            className="bg-white text-black"
+            className="spark-page-layout bg-white text-black"
             style={rootStyle}
             onClick={(e) => {
                 if (!isEditorPreview || e.target !== e.currentTarget) return;
@@ -434,20 +429,18 @@ export default function SparkHome({
                 onHeaderClick={() => selectSection("header")}
                 heroOverlap={heroOverlap}
             />
-            {body.map((section, index) =>
-                section.hidden ? null : (
+            {body.filter((section) => !section.hidden).map((section, index) => (
                     <motion.div
                         id={`spark-section-${section.id}`}
                         key={section.id}
                         {...sectionProps(section.id)}
                         {...sectionMotionProps}
-                        style={index === 0 ? undefined : { marginTop: `${sectionSpacing}px` }}
+                        style={index === 0 && heroOverlap ? { marginTop: 0 } : undefined}
                     >
                         <SectionOutline label={BODY_SECTION_LABELS[section.type]} active={activeSection === section.id} isEditorPreview={isEditorPreview} />
                         {renderBodySection(section)}
                     </motion.div>
-                )
-            )}
+            ))}
             {!footer.hidden && (
                 <div id="spark-section-footer" {...sectionProps("footer")}>
                     <SectionOutline label="Footer" active={activeSection === "footer"} isEditorPreview={isEditorPreview} />

@@ -10,6 +10,7 @@ import { mergeSparkConfig, type SparkConfig, type SparkConfigOverride, type Spar
 import { SPARK_BLOCK_CLICKED, SPARK_DRAFT_READY, SPARK_DRAFT_UPDATE, SPARK_SECTION_CLICKED, SPARK_SET_ACTIVE_BLOCK, SPARK_SET_ACTIVE_SECTION, type SparkActiveBlock } from "./SparkHome";
 import type { CollectionSummary, ShopIdentity, StorefrontProduct, TaxSettings } from "@/types/storefront";
 import SparkHeaderShell from "./SparkHeaderShell";
+import { sparkLayoutStyle } from "./sparkLayout";
 
 const PLACEHOLDER_IMAGE = "https://i0.wp.com/mikeyarce.com/wp-content/uploads/2021/09/woocommerce-placeholder.png?ssl=1";
 
@@ -160,7 +161,7 @@ export default function SparkCollectionPage({
     };
 
     return (
-        <div className="bg-white text-black min-h-screen">
+        <div className="spark-page-layout bg-white text-black min-h-screen" style={sparkLayoutStyle(liveConfig.theme_settings.layout)}>
             <SparkHeaderShell
                 config={liveConfig}
                 navItems={navItems}
@@ -176,7 +177,7 @@ export default function SparkCollectionPage({
             />
 
             <div
-                className="relative"
+                className="relative spark-layout-section"
                 onClick={isEditorPreview ? selectLayout : undefined}
                 onMouseOver={isEditorPreview ? () => setHoveringLayout(true) : undefined}
                 onMouseLeave={isEditorPreview ? () => setHoveringLayout(false) : undefined}
@@ -246,7 +247,7 @@ export default function SparkCollectionPage({
             </div>
 
             {!footer.hidden && (
-                <div id="spark-section-footer" onClick={isEditorPreview ? selectFooter : undefined}>
+                <div className="spark-layout-section" id="spark-section-footer" onClick={isEditorPreview ? selectFooter : undefined}>
                     <Footer
                         settings={footer.settings}
                         blocks={footer.blocks.filter((b) => !b.hidden)}

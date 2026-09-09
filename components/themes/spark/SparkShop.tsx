@@ -11,6 +11,7 @@ import { mergeSparkConfig, type SparkConfig, type SparkConfigOverride } from "./
 import { SPARK_BLOCK_CLICKED, SPARK_DRAFT_READY, SPARK_DRAFT_UPDATE, SPARK_SECTION_CLICKED, SPARK_SET_ACTIVE_BLOCK, SPARK_SET_ACTIVE_SECTION, type SparkActiveBlock } from "./SparkHome";
 import type { PaginationMeta, ShopIdentity, StorefrontProduct } from "@/types/storefront";
 import SparkHeaderShell from "./SparkHeaderShell";
+import { sparkLayoutStyle } from "./sparkLayout";
 
 const PRODUCTS_PER_ROW_CLASSES: Record<"2" | "3" | "4", string> = {
     "2": "grid-cols-2",
@@ -130,7 +131,7 @@ export default function SparkShop({ initialConfig, shop, navItems, products, pag
     };
 
     return (
-        <div className="bg-white text-black min-h-screen">
+        <div className="spark-page-layout bg-white text-black min-h-screen" style={sparkLayoutStyle(liveConfig.theme_settings.layout)}>
             <SparkHeaderShell
                 config={liveConfig}
                 navItems={navItems}
@@ -146,7 +147,7 @@ export default function SparkShop({ initialConfig, shop, navItems, products, pag
             />
 
             <div
-                className="relative"
+                className="relative spark-layout-section"
                 onClick={isEditorPreview ? selectShopLayout : undefined}
                 onMouseOver={isEditorPreview ? () => setHoveringLayout(true) : undefined}
                 onMouseLeave={isEditorPreview ? () => setHoveringLayout(false) : undefined}
@@ -232,7 +233,7 @@ export default function SparkShop({ initialConfig, shop, navItems, products, pag
             </div>
 
             {!footer.hidden && (
-                <div id="spark-section-footer" onClick={isEditorPreview ? selectFooter : undefined}>
+                <div className="spark-layout-section" id="spark-section-footer" onClick={isEditorPreview ? selectFooter : undefined}>
                     <Footer
                         settings={footer.settings}
                         blocks={footer.blocks.filter((b) => !b.hidden)}
