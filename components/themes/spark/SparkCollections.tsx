@@ -5,7 +5,7 @@ import Link from "next/link";
 import Header from "./Header";
 import Footer from "./sections/Footer";
 import { mergeSparkConfig, type SparkConfig, type SparkConfigOverride } from "./sparkConfig";
-import { SPARK_DRAFT_READY, SPARK_DRAFT_UPDATE, SPARK_SECTION_CLICKED, SPARK_SET_ACTIVE_SECTION } from "./SparkHome";
+import { SPARK_BLOCK_CLICKED, SPARK_DRAFT_READY, SPARK_DRAFT_UPDATE, SPARK_SECTION_CLICKED, SPARK_SET_ACTIVE_BLOCK, SPARK_SET_ACTIVE_SECTION, type SparkActiveBlock } from "./SparkHome";
 import type { CollectionSummary, ShopIdentity } from "@/types/storefront";
 import SparkHeaderShell from "./SparkHeaderShell";
 import { li } from "motion/react-client";
@@ -36,6 +36,7 @@ export default function SparkCollections({ initialConfig, shop, navItems, collec
     const [liveConfig, setLiveConfig] = useState(initialConfig);
     const [isEditorPreview, setIsEditorPreview] = useState(false);
     const [isSelected, setIsSelected] = useState(false);
+    const [activeBlock, setActiveBlock] = useState<SparkActiveBlock | null>(null);
     const [hoveringLayout, setHoveringLayout] = useState(false);
 
     useEffect(() => {
@@ -50,6 +51,8 @@ export default function SparkCollections({ initialConfig, shop, navItems, collec
                 setLiveConfig((current) => mergeSparkConfig(current, event.data.config as SparkConfigOverride));
             } else if (event.data.type === SPARK_SET_ACTIVE_SECTION) {
                 setIsSelected(event.data.section === "page_settings:collections");
+            } else if (event.data.type === SPARK_SET_ACTIVE_BLOCK) {
+                setActiveBlock((event.data.block as SparkActiveBlock | null) ?? null);
             }
         }
 
@@ -71,6 +74,17 @@ export default function SparkCollections({ initialConfig, shop, navItems, collec
     const selectLayout = () => {
         window.parent.postMessage({ type: SPARK_SECTION_CLICKED, section: "page_settings:collections" }, "*");
     };
+    const selectHeader = () => {
+        window.parent.postMessage({ type: SPARK_SECTION_CLICKED, section: "header" }, "*");
+    };
+    const selectFooter = () => {
+        window.parent.postMessage({ type: SPARK_SECTION_CLICKED, section: "footer" }, "*");
+    };
+    const selectFooterBlock = (kind: "text" | "menu", id: string) => {
+        const block = { sectionId: "footer", kind, id };
+        setActiveBlock(block);
+        window.parent.postMessage({ type: SPARK_BLOCK_CLICKED, block }, "*");
+    };
 
     return (
         <div className="bg-white text-black min-h-screen">
@@ -79,6 +93,13 @@ export default function SparkCollections({ initialConfig, shop, navItems, collec
                 navItems={navItems}
                 shop={shop}
                 isEditorPreview={isEditorPreview}
+                activeBlockId={activeBlock?.sectionId === "header" ? activeBlock.id : null}
+                onAnnouncementClick={(id) => {
+                    const block = { sectionId: "header", kind: "announcement", id };
+                    setActiveBlock(block);
+                    window.parent.postMessage({ type: SPARK_BLOCK_CLICKED, block }, "*");
+                }}
+                onHeaderClick={selectHeader}
             />
 
             <div
@@ -159,13 +180,19 @@ export default function SparkCollections({ initialConfig, shop, navItems, collec
             </div>
 
             {!footer.hidden && (
-                <Footer
-                    settings={footer.settings}
-                    blocks={footer.blocks.filter((b) => !b.hidden)}
-                    socialMedia={socialMedia}
-                    footerLogoUrl={logoSettings.footer_logo_url}
-                    footerLogoWidth={logoSettings.footer_logo_width}
-                />
+                <div id="spark-section-footer" onClick={isEditorPreview ? selectFooter : undefined}>
+                    <Footer
+                        settings={footer.settings}
+                        blocks={footer.blocks.filter((b) => !b.hidden)}
+                        navItems={navItems}
+                        socialMedia={socialMedia}
+                        footerLogoUrl={logoSettings.footer_logo_url}
+                        footerLogoWidth={logoSettings.footer_logo_width}
+                        isEditorPreview={isEditorPreview}
+                        activeBlockId={activeBlock?.sectionId === "footer" ? activeBlock.id : null}
+                        onBlockClick={selectFooterBlock}
+                    />
+                </div>
             )}
         </div>
     );

@@ -6,6 +6,7 @@ interface FooterProps {
     settings: SparkFooterSettings;
     // Already filtered for hidden, in the merchant's chosen order.
     blocks: SparkFooterBlock[];
+    navItems?: Array<{ label: string; href: string }>;
     socialMedia: SparkThemeSettingsSocialMedia;
     footerLogoUrl: string;
     footerLogoWidth: number;
@@ -47,6 +48,22 @@ const PAYMENT_BADGES: Record<string, React.ReactNode> = {
     tamara: <span className="h-6 px-2.5 bg-amber-100 text-amber-950 rounded flex items-center justify-center border border-amber-200 shadow-sm text-[10px] font-bold tracking-tight select-none">tamara</span>,
 };
 
+function resolveFooterMenuItem(item: string, navItems: Array<{ label: string; href: string }> = []) {
+    const lowerItem = item.toLowerCase();
+    if (lowerItem === "home") return { label: "Home", href: "/" };
+    if (lowerItem === "shop") return { label: "Shop", href: "/products" };
+    if (lowerItem === "collections") return { label: "Collections", href: "/collections" };
+    if (lowerItem.startsWith("page:")) {
+        const [pagePart, ...titleParts] = item.split("|");
+        const slug = pagePart.slice(5);
+        const serverItem = navItems.find((entry) => entry.href === `/${slug}`);
+        return { label: titleParts.join("|") || serverItem?.label || slug, href: serverItem?.href || `/${slug}` };
+    }
+    const serverItem = navItems.find((entry) => entry.label.toLowerCase() === lowerItem);
+    if (serverItem) return serverItem;
+    return { label: item, href: `/${item.toLowerCase().replace(/\s+/g, "-")}` };
+}
+
 // Full port of Fype-E-Commerce-UI's sections/Footer.tsx (read-only design
 // reference, commit dc33eb4 — the commit that first added a real Footer
 // section). Fixed singleton like Header, not a Body instance — see
@@ -54,6 +71,7 @@ const PAYMENT_BADGES: Record<string, React.ReactNode> = {
 export default function Footer({
     settings,
     blocks,
+    navItems = [],
     socialMedia,
     footerLogoUrl,
     footerLogoWidth,
@@ -152,13 +170,16 @@ export default function Footer({
                                         <>
                                             <h4 className="font-bold mb-6 text-lg">{block.settings.heading}</h4>
                                             <ul className="space-y-4 opacity-80">
-                                                {block.settings.menu_items.map((item, i) => (
-                                                    <li key={i}>
-                                                        <a href="#" className="hover:opacity-70 transition-opacity">
-                                                            {item}
-                                                        </a>
-                                                    </li>
-                                                ))}
+                                                {block.settings.menu_items.map((item, i) => {
+                                                    const link = resolveFooterMenuItem(item, navItems);
+                                                    return (
+                                                        <li key={i}>
+                                                            <a href={link.href} className="hover:opacity-70 transition-opacity">
+                                                                {link.label}
+                                                            </a>
+                                                        </li>
+                                                    );
+                                                })}
                                             </ul>
                                         </>
                                     )}

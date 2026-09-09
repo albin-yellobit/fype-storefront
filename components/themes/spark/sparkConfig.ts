@@ -1319,23 +1319,23 @@ export const sparkDefaultConfig: SparkConfig = {
                     type: "Menu",
                     settings: {
                         heading: "Shop",
-                        menu_items: ["Shop All", "Men's Apparel", "Women's Apparel", "Accessories", "Gift Cards"],
+                        menu_items: ["shop", "collections"],
                     },
                 },
                 {
                     id: "footer_menu_2",
                     type: "Menu",
                     settings: {
-                        heading: "Support",
-                        menu_items: ["FAQ", "Shipping & Returns", "Contact Us", "Warranty"],
+                        heading: "Pages",
+                        menu_items: ["home"],
                     },
                 },
                 {
                     id: "footer_menu_3",
                     type: "Menu",
                     settings: {
-                        heading: "Legal",
-                        menu_items: ["Terms of Service", "Privacy Policy", "Accessibility"],
+                        heading: "More",
+                        menu_items: [],
                     },
                 },
             ],

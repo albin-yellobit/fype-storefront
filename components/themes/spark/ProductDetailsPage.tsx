@@ -7,7 +7,7 @@ import type { ProductDetailsPageProps } from "@/components/themes/registry";
 import Footer from "./sections/Footer";
 import ProductGallery from "./ProductGallery";
 import { buildSparkNavItems, mergeSparkConfig, sparkDefaultConfig, type SparkConfigOverride } from "./sparkConfig";
-import { SPARK_DRAFT_READY, SPARK_DRAFT_UPDATE, SPARK_SECTION_CLICKED, SPARK_SET_ACTIVE_SECTION } from "./SparkHome";
+import { SPARK_BLOCK_CLICKED, SPARK_DRAFT_READY, SPARK_DRAFT_UPDATE, SPARK_SECTION_CLICKED, SPARK_SET_ACTIVE_BLOCK, SPARK_SET_ACTIVE_SECTION, type SparkActiveBlock } from "./SparkHome";
 import AuthModal from "@/components/shared/AuthModal";
 import { calculateProductTax } from "@/utils/taxCalculator";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
@@ -57,6 +57,7 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
     const [liveConfig, setLiveConfig] = useState(() => mergeSparkConfig(sparkDefaultConfig, themeConfig));
     const [isEditorPreview, setIsEditorPreview] = useState(false);
     const [isSelected, setIsSelected] = useState(false);
+    const [activeBlock, setActiveBlock] = useState<SparkActiveBlock | null>(null);
     const [hoveringLayout, setHoveringLayout] = useState(false);
 
     useEffect(() => {
@@ -71,6 +72,8 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
                 setLiveConfig((current) => mergeSparkConfig(current, event.data.config as SparkConfigOverride));
             } else if (event.data.type === SPARK_SET_ACTIVE_SECTION) {
                 setIsSelected(event.data.section === "page_settings:product");
+            } else if (event.data.type === SPARK_SET_ACTIVE_BLOCK) {
+                setActiveBlock((event.data.block as SparkActiveBlock | null) ?? null);
             }
         }
 
@@ -88,6 +91,22 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
 
     const selectLayout = () => {
         window.parent.postMessage({ type: SPARK_SECTION_CLICKED, section: "page_settings:product" }, "*");
+    };
+    const selectHeader = () => {
+        window.parent.postMessage({ type: SPARK_SECTION_CLICKED, section: "header" }, "*");
+    };
+    const selectFooter = () => {
+        window.parent.postMessage({ type: SPARK_SECTION_CLICKED, section: "footer" }, "*");
+    };
+    const selectFooterBlock = (kind: "text" | "menu", id: string) => {
+        const block = { sectionId: "footer", kind, id };
+        setActiveBlock(block);
+        window.parent.postMessage({ type: SPARK_BLOCK_CLICKED, block }, "*");
+    };
+    const selectAnnouncementBlock = (id: string) => {
+        const block = { sectionId: "header", kind: "announcement", id };
+        setActiveBlock(block);
+        window.parent.postMessage({ type: SPARK_BLOCK_CLICKED, block }, "*");
     };
 
     const isWishlisted = !!product && wishlist.includes(product.productId);
@@ -167,16 +186,25 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
                     navItems={navigation}
                     shop={shop}
                     isEditorPreview={isEditorPreview}
+                    activeBlockId={activeBlock?.sectionId === "header" ? activeBlock.id : null}
+                    onAnnouncementClick={selectAnnouncementBlock}
+                    onHeaderClick={selectHeader}
                 />
                 <div className="flex justify-center items-center min-h-[50vh] text-black/60">Product not found</div>
                 {!footer.hidden && (
-                    <Footer
-                        settings={footer.settings}
-                        blocks={footer.blocks.filter((b) => !b.hidden)}
-                        socialMedia={socialMedia}
-                        footerLogoUrl={logoSettings.footer_logo_url}
-                        footerLogoWidth={logoSettings.footer_logo_width}
-                    />
+                    <div id="spark-section-footer" onClick={isEditorPreview ? selectFooter : undefined}>
+                        <Footer
+                            settings={footer.settings}
+                            blocks={footer.blocks.filter((b) => !b.hidden)}
+                            navItems={navigation}
+                            socialMedia={socialMedia}
+                            footerLogoUrl={logoSettings.footer_logo_url}
+                            footerLogoWidth={logoSettings.footer_logo_width}
+                            isEditorPreview={isEditorPreview}
+                            activeBlockId={activeBlock?.sectionId === "footer" ? activeBlock.id : null}
+                            onBlockClick={selectFooterBlock}
+                        />
+                    </div>
                 )}
             </div>
         );
@@ -252,6 +280,9 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
                 navItems={navigation}
                 shop={shop}
                 isEditorPreview={isEditorPreview}
+                activeBlockId={activeBlock?.sectionId === "header" ? activeBlock.id : null}
+                onAnnouncementClick={selectAnnouncementBlock}
+                onHeaderClick={selectHeader}
             />
 
             <div
@@ -457,13 +488,19 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
             </div>
 
             {!footer.hidden && (
-                <Footer
-                    settings={footer.settings}
-                    blocks={footer.blocks.filter((b) => !b.hidden)}
-                    socialMedia={socialMedia}
-                    footerLogoUrl={logoSettings.footer_logo_url}
-                    footerLogoWidth={logoSettings.footer_logo_width}
-                />
+                <div id="spark-section-footer" onClick={isEditorPreview ? selectFooter : undefined}>
+                    <Footer
+                        settings={footer.settings}
+                        blocks={footer.blocks.filter((b) => !b.hidden)}
+                        navItems={navigation}
+                        socialMedia={socialMedia}
+                        footerLogoUrl={logoSettings.footer_logo_url}
+                        footerLogoWidth={logoSettings.footer_logo_width}
+                        isEditorPreview={isEditorPreview}
+                        activeBlockId={activeBlock?.sectionId === "footer" ? activeBlock.id : null}
+                        onBlockClick={selectFooterBlock}
+                    />
+                </div>
             )}
 
             <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} storeId={shop.shopId} shopName={shop.shopName} platformName="Fype" />

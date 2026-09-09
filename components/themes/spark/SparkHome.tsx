@@ -454,6 +454,7 @@ export default function SparkHome({
                     <Footer
                         settings={footer.settings}
                         blocks={footer.blocks.filter((b) => !b.hidden)}
+                        navItems={navItems}
                         socialMedia={socialMedia}
                         footerLogoUrl={logoSettings.footer_logo_url}
                         footerLogoWidth={logoSettings.footer_logo_width}
