@@ -120,6 +120,12 @@ export default function Footer({
         <footer className="relative py-20 px-6" style={{ backgroundColor: settings.background_color, color: settings.text_color }}>
             <div className="absolute top-0 left-0 right-0 h-px bg-current opacity-10" />
             <div className="max-w-7xl mx-auto">
+                {footerLogoUrl && (
+                    <div className="mb-12 flex items-center shrink-0 overflow-hidden" style={{ width: `${footerLogoWidth}px` }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={footerLogoUrl} alt="Footer Logo" className="w-full h-auto max-h-16 object-contain" />
+                    </div>
+                )}
                 <div className="grid gap-12 mb-20 grid-cols-2 md:grid-cols-5">
                     {blocks.map((block) => {
                         if (block.type === "Text") {
@@ -131,12 +137,7 @@ export default function Footer({
                                         "Text",
                                         "",
                                         <>
-                                            {footerLogoUrl ? (
-                                                <div className="mb-6 flex items-center shrink-0 overflow-hidden" style={{ width: `${footerLogoWidth}px` }}>
-                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                    <img src={footerLogoUrl} alt="Footer Logo" className="w-full h-auto max-h-16 object-contain" />
-                                                </div>
-                                            ) : (
+                                            {!footerLogoUrl && (
                                                 <div className="text-2xl font-black tracking-tighter mb-6">Spark.</div>
                                             )}
                                             <div className="max-w-sm mb-8 text-base leading-relaxed opacity-80" dangerouslySetInnerHTML={{ __html: block.settings.text }} />

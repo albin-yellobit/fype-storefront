@@ -5,6 +5,7 @@ import {
     getShopByDomain,
     getTheme,
     getPagesByLocation,
+    getAllPages,
     getProductDetails,
 } from "@/lib/storefront-api";
 import { loadTheme, resolveThemeSlug } from "@/lib/theme";
@@ -48,13 +49,14 @@ async function getSharedShopData() {
     const shop = await getShopByDomain(apiBaseUrl, domain);
     if (!shop) return null;
 
-    const [theme, navPages, footerPages] = await Promise.all([
+    const [theme, navPages, footerPages, allPages] = await Promise.all([
         getTheme(apiBaseUrl, shop.shopId),
         getPagesByLocation(apiBaseUrl, shop.shopId, "navigation"),
         getPagesByLocation(apiBaseUrl, shop.shopId, "footer"),
+        getAllPages(apiBaseUrl, shop.shopId),
     ]);
 
-    return { apiBaseUrl, shop, theme, navPages, footerPages };
+    return { apiBaseUrl, shop, theme, navPages, footerPages, allPages };
 }
 
 export async function generateMetadata({ params }: ProductDetailsPageProps): Promise<Metadata> {
@@ -74,7 +76,7 @@ export default async function ProductDetailsPage({ params, searchParams }: Produ
 
     if (!data || !data.theme) return <ShopNotFound />;
 
-    const { apiBaseUrl, shop, theme, navPages, footerPages } = data;
+    const { apiBaseUrl, shop, theme, navPages, footerPages, allPages } = data;
     const fetched = await getProductDetails(apiBaseUrl, shop.shopId, productId);
 
     // Real customer traffic sees "Product not found" exactly as before
@@ -102,6 +104,7 @@ export default async function ProductDetailsPage({ params, searchParams }: Produ
                 shop={shop}
                 navPages={navPages}
                 footerPages={footerPages}
+                allPages={allPages}
                 product={product}
                 variants={variants}
                 variantOptions={variantOptions}

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Script from "next/script";
 import { loadTheme, resolveThemeSlug } from "@/lib/theme";
@@ -10,6 +11,30 @@ import EditorPreviewNavigationLock from "@/components/shared/EditorPreviewNaviga
 // a plausible pixel/container id ever gets interpolated into injected JS.
 const META_PIXEL_ID_PATTERN = /^\d{10,20}$/;
 const GTM_CONTAINER_ID_PATTERN = /^GTM-[A-Z0-9]{4,10}$/;
+
+export async function generateMetadata(): Promise<Metadata> {
+    const headersList = await headers();
+    const host = headersList.get("host") ?? "";
+    const domain = host.split(":")[0];
+    const apiBaseUrl = await getApiBaseUrl();
+    const shop = await getShopByDomain(apiBaseUrl, domain);
+
+    if (!shop) {
+        return {};
+    }
+
+    const storeTheme = await getTheme(apiBaseUrl, shop.shopId);
+    const themeConfig = storeTheme?.themeConfig as any;
+    const faviconUrl = themeConfig?.theme_settings?.logo?.favicon_url;
+
+    return {
+        icons: faviconUrl
+            ? {
+                  icon: faviconUrl,
+              }
+            : undefined,
+    };
+}
 
 export default async function StorefrontLayout({ children }: { children: React.ReactNode }) {
     const headersList = await headers();

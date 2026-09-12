@@ -59,6 +59,7 @@ export interface ProductDetailsPageProps {
     shop: ShopIdentity;
     navPages: Page[];
     footerPages: Page[];
+    allPages?: Page[];
     product: ProductDetail | null;
     variants: ProductVariant[];
     variantOptions: VariantOptions | null;

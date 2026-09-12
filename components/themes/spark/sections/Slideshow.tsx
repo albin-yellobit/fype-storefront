@@ -148,12 +148,16 @@ export default function Slideshow({ settings, slides, isEditorPreview = false, a
                                     className={
                                         s.button_style === "Filled"
                                             ? "px-8 py-3 rounded-full uppercase tracking-[0.2em] text-[10px] hover:opacity-90 transition-opacity inline-block"
-                                            : "border border-white text-white px-8 py-3 rounded-full uppercase tracking-[0.2em] text-[10px] hover:bg-white hover:text-black transition-colors bg-transparent backdrop-blur-sm inline-block"
+                                            : "spark-banner-outline-button border px-8 py-3 rounded-full uppercase tracking-[0.2em] text-[10px] bg-transparent backdrop-blur-sm inline-block"
                                     }
                                     style={
                                         s.button_style === "Filled"
                                             ? { backgroundColor: s.button_color, color: s.button_text_color }
-                                            : { borderColor: settings.color, color: settings.color }
+                                            : {
+                                                  borderColor: s.button_color,
+                                                  ["--spark-button-text" as string]: s.button_color,
+                                                  ["--spark-button-hover-text" as string]: s.button_hover_text_color || "#000000",
+                                              }
                                     }
                                 >
                                     {s.button_text}

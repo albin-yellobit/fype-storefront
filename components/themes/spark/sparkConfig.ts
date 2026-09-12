@@ -307,6 +307,7 @@ export interface SparkSlideBlockSettings {
     button_text: string;
     button_style: "Outline" | "Filled";
     button_color: string;
+    button_hover_text_color?: string;
     button_text_color: string;
     button_link: string;
 }
@@ -561,11 +562,10 @@ export interface SparkProductPageSettings {
     show_description: boolean;
     description_position: "Below Add to Cart" | "Below Product Title";
     show_wishlist: boolean;
-    // Rendered as a real link (unlike the reference's own dead
-    // `customLinkPage`, collected but never read) — custom_link_url is new,
-    // not ported from the reference, so the link actually goes somewhere.
+    // Custom link can be either a URL or a page slug
     custom_link_label: string;
     custom_link_url: string;
+    custom_link_page_id?: string;
     // Merchant-authored trust/policy rows (Truck / Refresh / Shield icons in
     // order). Empty titles are not rendered — never mock US-shipping copy.
     highlights: SparkProductHighlight[];
@@ -1189,6 +1189,7 @@ export const sparkDefaultConfig: SparkConfig = {
                             button_text: "Explore Now",
                             button_style: "Outline",
                             button_color: "#ffffff",
+                            button_hover_text_color: "#000000",
                             button_text_color: "#000000",
                             button_link: "#",
                         },
@@ -1204,6 +1205,7 @@ export const sparkDefaultConfig: SparkConfig = {
                             button_text: "Shop Essentials",
                             button_style: "Outline",
                             button_color: "#ffffff",
+                            button_hover_text_color: "#000000",
                             button_text_color: "#000000",
                             button_link: "#",
                         },
@@ -1219,6 +1221,7 @@ export const sparkDefaultConfig: SparkConfig = {
                             button_text: "Shop Accessories",
                             button_style: "Outline",
                             button_color: "#ffffff",
+                            button_hover_text_color: "#000000",
                             button_text_color: "#000000",
                             button_link: "#",
                         },
@@ -1373,6 +1376,7 @@ export const sparkDefaultConfig: SparkConfig = {
             show_wishlist: true,
             custom_link_label: "",
             custom_link_url: "",
+            custom_link_page_id: "",
             highlights: [
                 { title: "", text: "" },
                 { title: "", text: "" },

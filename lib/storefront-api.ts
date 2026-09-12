@@ -91,6 +91,18 @@ export async function getPagesByLocation(
     }
 }
 
+export async function getAllPages(apiBaseUrl: string, storeId: string): Promise<Page[]> {
+    try {
+        const json = await fetchJson<{ data: { pages: Page[] } }>(
+            `${apiBaseUrl}/commerce/${storeId}/pages/public`,
+            PAGES_REVALIDATE
+        );
+        return json.data.pages ?? [];
+    } catch {
+        return [];
+    }
+}
+
 export async function getNewInCollection(
     apiBaseUrl: string,
     storeId: string,

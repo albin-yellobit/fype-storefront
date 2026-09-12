@@ -50,7 +50,7 @@ function ProductHighlights({ highlights, compact }: { highlights: SparkProductHi
 // wrapper exists here — this component was already "use client" (variant
 // selection, cart dispatch), so the live-editing postMessage listener is
 // embedded directly instead of adding a redundant wrapper layer.
-export default function ProductDetailsPage({ shop, navPages, product, variants, variantOptions, relatedProducts, themeConfig }: ProductDetailsPageProps) {
+export default function ProductDetailsPage({ shop, navPages, allPages, product, variants, variantOptions, relatedProducts, themeConfig }: ProductDetailsPageProps) {
     const dispatch = useAppDispatch();
     const { isAuthenticated, wishlist } = useAppSelector((state) => state.user);
     const { openCart } = useSparkCart();
@@ -267,11 +267,25 @@ export default function ProductDetailsPage({ shop, navPages, product, variants, 
     const showBelowCart = settings.description_position !== "Below Product Title" && (showDescBlock || showHighlights);
     const isNew = !!product.createdAt && Date.now() - new Date(product.createdAt).getTime() < NEW_WINDOW_MS;
     const showWishlist = settings.show_wishlist !== false;
+
+    // Determine custom link URL: use page slug if page_id is set, otherwise use custom_link_url
+    const pagesToSearch = allPages || navPages;
+    const customLinkUrl = settings.custom_link_page_id
+        ? pagesToSearch.find((p) => p._id === settings.custom_link_page_id)?.slug
+            ? `/${pagesToSearch.find((p) => p._id === settings.custom_link_page_id)?.slug}`
+            : ""
+        : settings.custom_link_url;
+
     const customLink =
-        settings.custom_link_label && settings.custom_link_url ? (
-            <Link href={settings.custom_link_url} className="text-sm text-gray-500 underline underline-offset-4 hover:text-black">
+        settings.custom_link_label && customLinkUrl ? (
+            <a
+                href={customLinkUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-gray-500 underline underline-offset-4 hover:text-black"
+            >
                 {settings.custom_link_label}
-            </Link>
+            </a>
         ) : null;
 
     return (
