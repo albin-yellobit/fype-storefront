@@ -15,15 +15,18 @@
 		"binding": "ASSETS"
 	},
 	"vars": {
-		// local/dev default; override per-environment (see [env.production.vars] below) once a real API host exists.
+		// These ARE the real production values. There is no separate env.production —
+		// this top-level (unnamed) config is what's deployed by plain `npm run deploy`
+		// (`opennextjs-cloudflare deploy --env ""`), to the worker named "storefront-next"
+		// bound to the shops.fypestore.com / *.fypestore.com routes below.
 		// CONFIRMED (2026-07-23, real browser test): NEXT_PUBLIC_API_BASE_URL here — and in .dev.vars — does NOT
 		// reach the client bundle. Next.js inlines NEXT_PUBLIC_* vars at build time by reading its OWN env loader
 		// (.env.local / .env.production.local, standard Next.js convention), which runs before the Cloudflare
 		// adapter's .dev.vars injection even happens. Client-side code was silently calling relative URLs against
 		// the Worker's own origin instead of the backend until .env.local was added — see that file, not this one,
 		// for the value that actually matters to client code.
-		"API_BASE_URL": "http://localhost:8000/api/v1",
-		"NEXT_PUBLIC_API_BASE_URL": "http://localhost:8000/api/v1"
+		"API_BASE_URL": "https://api.fypestore.com/api/v1",
+		"NEXT_PUBLIC_API_BASE_URL": "https://api.fypestore.com/api/v1"
 	},
 	"kv_namespaces": [
 		{
@@ -46,9 +49,17 @@
 	},
 	// Wires shops.fypestore.com (Cloudflare for SaaS fallback origin, production)
 	// to this Worker. Requires a proxied DNS record for shops.fypestore.com in the zone.
+	//
+	// *.fypestore.com/* is the per-store production wildcard, mirroring staging's
+	// *.test.fypestore.com/* — every store's own subdomain (e.g. somestore.fypestore.com)
+	// resolves here automatically, no per-store route needed.
 	"routes": [
 		{
 			"pattern": "shops.fypestore.com/*",
+			"zone_name": "fypestore.com"
+		},
+		{
+			"pattern": "*.fypestore.com/*",
 			"zone_name": "fypestore.com"
 		}
 	],
