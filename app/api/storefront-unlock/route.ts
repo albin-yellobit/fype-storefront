@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiBaseUrl } from "@/lib/api-base-url";
-import { STOREFRONT_UNLOCK_COOKIE, STOREFRONT_UNLOCK_MAX_AGE } from "@/lib/storefront-gate";
+import { STOREFRONT_UNLOCK_COOKIE } from "@/lib/storefront-gate";
 
 export async function POST(request: NextRequest) {
     const body = (await request.json().catch(() => null)) as { password?: string; returnTo?: string } | null;
@@ -45,7 +45,6 @@ export async function POST(request: NextRequest) {
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         path: "/",
-        maxAge: STOREFRONT_UNLOCK_MAX_AGE,
     });
     return response;
 }

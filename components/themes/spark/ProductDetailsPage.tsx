@@ -10,6 +10,7 @@ import { buildSparkNavItems, mergeSparkConfig, sparkDefaultConfig, type SparkCon
 import { SPARK_BLOCK_CLICKED, SPARK_DRAFT_READY, SPARK_DRAFT_UPDATE, SPARK_SECTION_CLICKED, SPARK_SET_ACTIVE_BLOCK, SPARK_SET_ACTIVE_SECTION, type SparkActiveBlock } from "./SparkHome";
 import AuthModal from "@/components/shared/AuthModal";
 import { calculateProductTax } from "@/utils/taxCalculator";
+import { resolveCustomLink } from "@/utils/resolveCustomLink";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { addToCart, addToGuestCart, addToWishlist, fetchCart, fetchGuestCart, removeFromWishlist } from "@/redux/slices/userSlice";
 import SparkHeaderShell from "./SparkHeaderShell";
@@ -268,24 +269,23 @@ export default function ProductDetailsPage({ shop, navPages, allPages, product, 
     const isNew = !!product.createdAt && Date.now() - new Date(product.createdAt).getTime() < NEW_WINDOW_MS;
     const showWishlist = settings.show_wishlist !== false;
 
-    // Determine custom link URL: use page slug if page_id is set, otherwise use custom_link_url
+    // Determine custom link target: an internal page (same-tab nav) or a
+    // validated external URL (new-tab nav) — see resolveCustomLink.
     const pagesToSearch = allPages || navPages;
-    const customLinkUrl = settings.custom_link_page_id
-        ? pagesToSearch.find((p) => p._id === settings.custom_link_page_id)?.slug
-            ? `/${pagesToSearch.find((p) => p._id === settings.custom_link_page_id)?.slug}`
-            : ""
-        : settings.custom_link_url;
+    const resolvedCustomLink = resolveCustomLink(settings.custom_link_page_id, settings.custom_link_url, pagesToSearch);
 
+    const customLinkClassName = "text-sm text-gray-500 underline underline-offset-4 hover:text-black";
     const customLink =
-        settings.custom_link_label && customLinkUrl ? (
-            <a
-                href={customLinkUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-gray-500 underline underline-offset-4 hover:text-black"
-            >
-                {settings.custom_link_label}
-            </a>
+        settings.custom_link_label && resolvedCustomLink ? (
+            resolvedCustomLink.external ? (
+                <a href={resolvedCustomLink.href} target="_blank" rel="noopener noreferrer" className={customLinkClassName}>
+                    {settings.custom_link_label}
+                </a>
+            ) : (
+                <Link href={resolvedCustomLink.href} className={customLinkClassName}>
+                    {settings.custom_link_label}
+                </Link>
+            )
         ) : null;
 
     return (
