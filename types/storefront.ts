@@ -113,6 +113,7 @@ export interface ShopIdentity {
         payment?: {
             active?: string[];
             razorpay?: { enabled?: boolean; keyId?: string };
+            stripe?: { enabled?: boolean; publishableKey?: string };
         };
         logistics?: {
             active?: string[];

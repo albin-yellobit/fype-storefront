@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Script from "next/script";
 import { getApiBaseUrl, getShopByDomain } from "@/lib/storefront-api";
+import { resolveActiveGateways } from "@/hooks/useActiveGateways";
 import ShopNotFound from "@/components/shared/ShopNotFound";
 import CheckoutView from "@/components/checkout/CheckoutView";
 
@@ -22,17 +23,22 @@ export default async function CheckoutPage() {
         (activeLogistics.includes("dtdc") && !!shop.settings?.logistics?.dtdc?.enabled) ||
         (activeLogistics.includes("delhivery") && !!shop.settings?.logistics?.delhivery?.enabled);
     const hasManualShipping = !hasDeliveryApp && !!shop.settings?.logistics?.manualShipping;
-    const hasPaymentGateway = !!shop.settings?.payment?.razorpay?.enabled;
+    const activeGateways = resolveActiveGateways(shop);
 
     return (
         <>
-            {hasPaymentGateway && <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />}
+            {/* Each gateway's script loads independently, gated on its own
+                membership in activeGateways - Stripe's SDK (loaded internally by
+                useStripeAdapter via @stripe/stripe-js) never waits on this tag,
+                and this tag never waits on Stripe. */}
+            {activeGateways.includes("razorpay") && <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />}
             <CheckoutView
                 storeId={shop.shopId}
                 shopName={shop.shopName}
                 hasDeliveryApp={hasDeliveryApp}
                 hasManualShipping={hasManualShipping}
-                hasPaymentGateway={hasPaymentGateway}
+                activeGateways={activeGateways}
+                stripePublishableKey={shop.settings?.payment?.stripe?.publishableKey}
             />
         </>
     );

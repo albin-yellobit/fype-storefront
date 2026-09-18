@@ -665,14 +665,19 @@ export const deleteAddress = createAsyncThunk(
 
 // ===== ORDER THUNKS =====
 
+// Generalized from the old hardcoded razorpay_order_id/payment_id/signature
+// fields to the generic gateway/gatewayRef shape crmApp's OrderController.createOrder
+// now accepts additively (see order.controller.ts's new `gateway && gatewayRef`
+// branch) - matches CheckoutGatewayAdapter.open()'s GatewayOpenResult.gatewayRef
+// shape exactly. The old razorpay_* fields are no longer sent by this frontend;
+// the backend's old inline-HMAC path is preserved purely for any other/older caller.
 interface CreateOrderRequest {
     items: CartItem[];
     shippingAddress: Address;
     billingAddress?: Address;
-    paymentMethod: string;
-    razorpay_order_id?: string;
-    razorpay_payment_id?: string;
-    razorpay_signature?: string;
+    paymentMethod: string; // 'manual' | 'cod' | a registered gateway key (e.g. 'razorpay' | 'stripe')
+    gateway?: string;
+    gatewayRef?: Record<string, unknown>;
     customerNotes?: string;
     subtotal?: number;
     tax?: number;

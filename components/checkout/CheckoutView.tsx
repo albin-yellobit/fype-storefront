@@ -18,7 +18,9 @@ import {
 } from "@/redux/slices/userSlice";
 import { calculateShippingRate, getExpectedTAT } from "@/lib/shipping-api";
 import { fetchStockForCartItems } from "@/lib/stock-api";
-import { useRazorpay } from "@/hooks/useRazorpay";
+import { useRazorpayAdapter } from "@/hooks/useRazorpayAdapter";
+import { useStripeAdapter } from "@/hooks/useStripeAdapter";
+import type { PaymentMethodOption } from "@/types/checkoutGateway";
 import AuthModal from "@/components/shared/AuthModal";
 import AddAddressPanel from "./AddAddressPanel";
 import CartItemsCard from "./CartItemsCard";
@@ -35,7 +37,10 @@ interface CheckoutViewProps {
     shopName?: string;
     hasDeliveryApp: boolean;
     hasManualShipping: boolean;
-    hasPaymentGateway: boolean;
+    /** Registered, adapter-backed gateway keys active for this store (e.g.
+     * ['razorpay'], ['stripe'], both, or []) - see useActiveGateways. */
+    activeGateways: string[];
+    stripePublishableKey?: string;
 }
 
 const getCartHash = (items: { productId: string; variantId?: string; quantity: number }[]) =>
@@ -44,7 +49,14 @@ const getCartHash = (items: { productId: string; variantId?: string; quantity: n
         .map((i) => `${i.productId}:${i.variantId || ""}:${i.quantity}`)
         .join("|");
 
-export default function CheckoutView({ storeId, shopName, hasDeliveryApp, hasManualShipping, hasPaymentGateway }: CheckoutViewProps) {
+export default function CheckoutView({
+    storeId,
+    shopName,
+    hasDeliveryApp,
+    hasManualShipping,
+    activeGateways,
+    stripePublishableKey,
+}: CheckoutViewProps) {
     const dispatch = useAppDispatch();
     const router = useRouter();
     const { user, isAuthenticated, cart, addresses } = useAppSelector((state) => state.user);
@@ -69,6 +81,11 @@ export default function CheckoutView({ storeId, shopName, hasDeliveryApp, hasMan
     const lastCallRef = useRef<{ cartHash: string | null; pincode: string | null }>({ cartHash: null, pincode: null });
 
     const shippingCost = hasDeliveryApp || hasManualShipping ? (shipmentState.deliveryCharge ?? cart?.shipping ?? 0) : (cart?.shipping ?? 0);
+    // COD is only ever offered when the store has no active online gateway at
+    // all (unchanged UX rule from before multi-gateway support - generalized
+    // from "no razorpay" to "no active gateway", not made independently
+    // toggleable, which wasn't asked for).
+    const hasPaymentGateway = activeGateways.length > 0;
     const showCod = !hasPaymentGateway;
     const notServiceable = (hasDeliveryApp || hasManualShipping) && !shipmentState.serviceable;
 
@@ -76,16 +93,26 @@ export default function CheckoutView({ storeId, shopName, hasDeliveryApp, hasMan
         if (showCod) setSelectedPaymentMethod("cod");
     }, [showCod]);
 
-    const { openRazorpay, isLoading: isPaymentLoading } = useRazorpay({
-        storeId,
-        storeName: shopName,
-        onSuccess: async (paymentId, razorpayOrderId, razorpaySignature) => {
-            await handleCreateOrder("razorpay", paymentId, razorpayOrderId, razorpaySignature);
-        },
-        onFailure: (error) => {
-            setOrderError(error instanceof Error ? error.message : "Payment failed. Please try again.");
-        },
-    });
+    // One adapter instance per active gateway - each hook internally no-ops
+    // until its own SDK is actually needed (useRazorpayAdapter polls for the
+    // globally-injected checkout.js only if mounted; useStripeAdapter only
+    // calls loadStripe() when given a publishableKey). Neither's readiness
+    // depends on the other.
+    const razorpayAdapter = useRazorpayAdapter({ storeId, storeName: shopName });
+    const stripeAdapter = useStripeAdapter({ storeId, publishableKey: activeGateways.includes("stripe") ? stripePublishableKey : undefined });
+
+    const adaptersByGateway: Record<string, ReturnType<typeof useRazorpayAdapter>> = {
+        razorpay: razorpayAdapter,
+        stripe: stripeAdapter,
+    };
+    const activeAdapters = activeGateways.map((key) => adaptersByGateway[key]).filter((a): a is NonNullable<typeof a> => !!a);
+    const gatewayMethods: PaymentMethodOption[] = activeAdapters.filter((a) => a.isReady).flatMap((a) => a.availableMethods);
+    // COD isn't owned by any gateway adapter - kept as a standalone entry,
+    // same as before multi-gateway support, shown only when no gateway is active.
+    const codMethod: PaymentMethodOption = { id: "cod", gatewayKey: "manual", title: "Cash on delivery", subtitle: "Pay with cash" };
+    const availableMethods: PaymentMethodOption[] = showCod ? [...gatewayMethods, codMethod] : gatewayMethods;
+    const isPaymentLoading = activeAdapters.some((a) => a.isLoading);
+    const methodToGateway = new Map(availableMethods.map((m) => [m.id, m.gatewayKey]));
 
     useEffect(() => {
         if (isAuthenticated && storeId) dispatch(fetchAddresses({ storeId }));
@@ -147,12 +174,7 @@ export default function CheckoutView({ storeId, shopName, hasDeliveryApp, hasMan
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [hasDeliveryApp, hasManualShipping, selectedAddress?.postalCode, cart?.items]);
 
-    const handleCreateOrder = async (
-        paymentMethod: "razorpay" | "manual",
-        paymentId?: string,
-        razorpayOrderId?: string,
-        razorpaySignature?: string
-    ) => {
+    const handleCreateOrder = async (paymentMethod: string, gateway?: string, gatewayRef?: Record<string, unknown>) => {
         if (!cart || !selectedAddress) return;
         setOrderError(null);
         setProcessingOrder(true);
@@ -171,9 +193,7 @@ export default function CheckoutView({ storeId, shopName, hasDeliveryApp, hasMan
                         shipping: shippingCost,
                         total: (cart.subtotal || 0) + (cart.tax || 0) + shippingCost - (cart.discount || 0),
                         estimatedDelivery: tatInfo?.deliveryDate || null,
-                        ...(paymentMethod === "razorpay" && razorpayOrderId && paymentId && razorpaySignature
-                            ? { razorpay_order_id: razorpayOrderId, razorpay_payment_id: paymentId, razorpay_signature: razorpaySignature }
-                            : {}),
+                        ...(gateway && gatewayRef ? { gateway, gatewayRef } : {}),
                     },
                 })
             ).unwrap();
@@ -215,11 +235,23 @@ export default function CheckoutView({ storeId, shopName, hasDeliveryApp, hasMan
         const totalAmount = (cart.subtotal || 0) + (cart.tax || 0) + shippingCost - (cart.discount || 0);
         if (totalAmount <= 0) return;
 
-        openRazorpay(
-            totalAmount * 100,
-            { name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Customer", email: user.email || "", phone: user.phone || "" },
-            method
-        );
+        const gatewayKey = methodToGateway.get(method);
+        const adapter = gatewayKey ? adaptersByGateway[gatewayKey] : undefined;
+        if (!gatewayKey || !adapter) {
+            setOrderError("This payment method is not available right now.");
+            return;
+        }
+
+        try {
+            const { gatewayRef } = await adapter.open({
+                amount: totalAmount * 100,
+                userDetails: { name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Customer", email: user.email || "", phone: user.phone || "" },
+                methodId: method,
+            });
+            await handleCreateOrder(gatewayKey, gatewayKey, gatewayRef);
+        } catch (error) {
+            setOrderError(error instanceof Error ? error.message : "Payment failed. Please try again.");
+        }
     };
 
     const handleUpdateQuantity = (item: CartItem, quantity: number) => {
@@ -228,6 +260,12 @@ export default function CheckoutView({ storeId, shopName, hasDeliveryApp, hasMan
 
     const handleRemove = (item: CartItem) => {
         dispatch(removeFromCart({ storeId, itemId: item._id, variantId: item.variantId }));
+        // Removing the last item would otherwise leave the user staring at
+        // checkout's own "cart is empty" state - go back to wherever they
+        // came from (normally /cart) instead.
+        if (cart?.items.length === 1) {
+            router.back();
+        }
     };
 
     const handleSaveAddress = async (payload: Omit<Address, "_id" | "addressId">) => {
@@ -352,23 +390,13 @@ export default function CheckoutView({ storeId, shopName, hasDeliveryApp, hasMan
                             tatInfo={tatInfo?.deliveryDate}
                         />
 
-                        {hasPaymentGateway ? (
-                            <PaymentMethodList
-                                total={total}
-                                selected={selectedPaymentMethod}
-                                onSelect={setSelectedPaymentMethod}
-                                showCod={showCod}
-                                variant="desktop"
-                            />
-                        ) : (
-                            <PaymentMethodList
-                                total={total}
-                                selected={selectedPaymentMethod ?? "cod"}
-                                onSelect={setSelectedPaymentMethod}
-                                showCod
-                                variant="desktop"
-                            />
-                        )}
+                        <PaymentMethodList
+                            total={total}
+                            methods={availableMethods}
+                            selected={hasPaymentGateway ? selectedPaymentMethod : (selectedPaymentMethod ?? "cod")}
+                            onSelect={setSelectedPaymentMethod}
+                            variant="desktop"
+                        />
 
                         {orderError && <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">{orderError}</div>}
                     </div>
@@ -461,12 +489,12 @@ export default function CheckoutView({ storeId, shopName, hasDeliveryApp, hasMan
             <CheckoutHeader title="Payment methods" onBack={() => setView("checkout")} />
             <PaymentMethodList
                 total={total}
+                methods={availableMethods}
                 selected={selectedPaymentMethod}
                 onSelect={async (method) => {
                     setSelectedPaymentMethod(method);
                     await handlePlaceOrder(method);
                 }}
-                showCod={showCod}
                 variant="mobile"
             />
             {orderError && <div className="px-4 pb-4"><div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">{orderError}</div></div>}
